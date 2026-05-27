@@ -1,0 +1,109 @@
+# Schema för ärendehantering — svenska kommuner/myndigheter
+# Baserat på klassisk ERMS-modell (ärende + handlingar)
+
+record:
+  metadataType: "arende"
+  label:
+    sv: "Ärende"
+    en: "Case"
+
+item:
+  metadataType: "handling"
+  label:
+    sv: "Handling"
+    en: "Document"
+
+recordFields:
+  - name: arendenummer
+    type: string
+    required: true
+    label: { sv: "Ärendenummer", en: "Case Number" }
+
+  - name: titel
+    type: string
+    required: true
+    label: { sv: "Titel", en: "Title" }
+
+  - name: klassifikationskod
+    type: string
+    required: true
+    label: { sv: "Klassifikationskod", en: "Classification Code" }
+
+  - name: handlaggare
+    type: string
+    required: false
+    label: { sv: "Handläggare", en: "Case Manager" }
+
+  - name: motpart
+    type: string
+    required: false
+    label: { sv: "Motpart/Sökande", en: "Counterpart" }
+
+  - name: organisationsnummer
+    type: string
+    required: false
+    label: { sv: "Organisationsnummer", en: "Organization Number" }
+
+  - name: verksamhetssystem
+    type: string
+    required: false
+    label: { sv: "Verksamhetssystem", en: "Business System" }
+
+  - name: oppningsdatum
+    type: date
+    required: true
+    label: { sv: "Öppningsdatum", en: "Opened Date" }
+
+  - name: avslutsdatum
+    type: date
+    required: false
+    label: { sv: "Avslutsdatum", en: "Closed Date" }
+
+  - name: arkiveringsdatum
+    type: date
+    required: true
+    label: { sv: "Arkiveringsdatum", en: "Archiving Date" }
+
+  - name: sekretess
+    type: enumeration
+    required: false
+    values: ["Nej", "Ja"]
+    label: { sv: "Sekretess", en: "Confidentiality" }
+
+  - name: anteckning
+    type: text
+    required: false
+    label: { sv: "Anteckning", en: "Note" }
+
+itemFields:
+  - name: handlingsnummer
+    type: string
+    required: true
+    label: { sv: "Handlingsnummer", en: "Document Number" }
+
+  - name: titel
+    type: string
+    required: true
+    label: { sv: "Titel", en: "Title" }
+
+  - name: handlingstyp
+    type: enumeration
+    required: false
+    values: ["Inkommande", "Upprättad", "Utgående"]
+    label: { sv: "Handlingstyp", en: "Document Type" }
+
+  - name: datum
+    type: date
+    required: false
+    label: { sv: "Datum", en: "Date" }
+
+  - name: avsandare_mottagare
+    type: string
+    required: false
+    label: { sv: "Avsändare/Mottagare", en: "Sender/Recipient" }
+
+  - name: sekretess
+    type: enumeration
+    required: false
+    values: ["Nej", "Ja"]
+    label: { sv: "Sekretess", en: "Confidentiality" }

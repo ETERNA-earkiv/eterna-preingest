@@ -1,0 +1,50 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: eterna-ingest-service
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: false
+  codec:
+    max-in-memory-size: 500MB
+  mvc:
+    static-path-pattern: "/**"
+  web:
+    resources:
+      static-locations: "classpath:/static/"
+
+eterna:
+  url: ${ETERNA_URL:http://localhost:8080}
+  username: ${ETERNA_USERNAME:admin}
+  password: ${ETERNA_PASSWORD:eterna}
+  api-path: ${ETERNA_API_PATH:/api/v1}
+  read-timeout: 60s
+  write-timeout: 120s
+  verify-ssl: false
+
+ingest:
+  schema-path: ${INGEST_SCHEMA_PATH:/config/schema.yaml}
+  overlay-dir: ${INGEST_OVERLAY_DIR:/config/overlay}
+  auto-deploy-overlay: ${INGEST_AUTO_DEPLOY_OVERLAY:true}
+  work-dir: ${INGEST_WORK_DIR:/tmp/eterna-ingest}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    se.eterna: INFO
+    org.springframework: WARN

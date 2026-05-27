@@ -1,0 +1,142 @@
+package se.eterna.ingest.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import se.eterna.commons.client.EternaClient;
+import se.eterna.commons.client.IngestJob;
+import se.eterna.commons.client.TransferResource;
+import se.eterna.commons.ingest.IngestOptions;
+import se.eterna.commons.sip.SipFile;
+import se.eterna.commons.sip.SipPackager;
+import se.eterna.ingest.config.SchemaDefinition;
+import se.eterna.ingest.config.SchemaLoader;
+import se.eterna.ingest.dto.RecordStatusResponse;
+import se.eterna.ingest.dto.SubmitRecordRequest;
+import se.eterna.ingest.dto.SubmitRecordResponse;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class RecordService {
+
+    private static final Logger log = LoggerFactory.getLogger(RecordService.class);
+
+    private final EternaClient eternaClient;
+    private final SchemaLoader schemaLoader;
+    private final SchemaValidator validator;
+    private final MetadataXmlGenerator xmlGenerator;
+    private final SipPackager sipPackager;
+
+    @Value("${ingest.work-dir:/tmp/eterna-ingest}")
+    private String workDirBase;
+
+    public RecordService(
+        EternaClient eternaClient,
+        SchemaLoader schemaLoader,
+        SchemaValidator validator,
+        MetadataXmlGenerator xmlGenerator,
+        SipPackager sipPackager
+    ) {
+        this.eternaClient = eternaClient;
+        this.schemaLoader = schemaLoader;
+        this.validator = validator;
+        this.xmlGenerator = xmlGenerator;
+        this.sipPackager = sipPackager;
+    }
+
+    public SubmitRecordResponse submit(SubmitRecordRequest request) throws Exception {
+        SchemaDefinition schema = schemaLoader.getSchema();
+        boolean isItem = request.recordType() == SubmitRecordRequest.RecordType.ITEM;
+
+        List<SchemaDefinition.FieldDefinition> fieldDefs = isItem
+            ? schema.itemFields() : schema.recordFields();
+        SchemaDefinition.TypeConfig typeConfig = isItem ? schema.item() : schema.record();
+
+        // Validera fält mot schema
+        List<String> errors = validator.validate(request.fields(), fieldDefs,
+            typeConfig != null ? typeConfig.metadataType() : "record");
+        List<String> realErrors = errors.stream()
+            .filter(e -> !e.contains("okänt fält ignoreras"))
+            .toList();
+        if (!realErrors.isEmpty()) {
+            throw new ValidationException(realErrors);
+        }
+
+        Path workDir = Files.createTempDirectory(Path.of(workDirBase), "sip-");
+        try {
+            // Generera metadata-XML
+            String metadataType = typeConfig != null ? typeConfig.metadataType() : "record";
+            Path metadataFile = xmlGenerator.generate(
+                metadataType, request.fields(), fieldDefs, workDir
+            );
+
+            // Förbered bifogade filer
+            List<SipFile> sipFiles = buildSipFiles(request);
+
+            // Bygg SIP ZIP
+            String sipId = UUID.randomUUID().toString();
+            Path zipPath = sipPackager.buildZip(sipId, metadataFile, metadataType, sipFiles, workDir);
+
+            // Ladda upp till ETERNA
+            try (var zipStream = Files.newInputStream(zipPath)) {
+                TransferResource transfer = eternaClient.uploadZip(sipId + ".zip", zipStream);
+                log.info("SIP uppladdad: transferId={}", transfer.transferId());
+
+                // Starta ingest-jobb
+                IngestJob job = eternaClient.createJob(
+                    List.of(transfer.transferId()),
+                    IngestOptions.defaults(request.parentId())
+                );
+                log.info("Ingest-jobb startat: jobId={}", job.id());
+                return new SubmitRecordResponse(job.id());
+            }
+        } finally {
+            // Städa upp temporära filer
+            deleteDir(workDir);
+        }
+    }
+
+    public RecordStatusResponse getStatus(String jobId) {
+        IngestJob job = eternaClient.getJob(jobId);
+        return new RecordStatusResponse(
+            job.id(),
+            job.state(),
+            job.percentageCompleted(),
+            null  // AIP-ID extraheras ur ETERNA-rapporter efter COMPLETED
+        );
+    }
+
+    private List<SipFile> buildSipFiles(SubmitRecordRequest request) {
+        if (request.files() == null) return List.of();
+        List<SipFile> result = new ArrayList<>();
+        for (var attachment : request.files()) {
+            if (attachment.base64Data() != null) {
+                byte[] data = attachment.decodedData();
+                result.add(new SipFile(attachment.filename(), new ByteArrayInputStream(data)));
+            }
+        }
+        return result;
+    }
+
+    private void deleteDir(Path dir) {
+        try {
+            try (var walk = Files.walk(dir)) {
+                walk.sorted(java.util.Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try { Files.deleteIfExists(p); }
+                        catch (IOException ignored) {}
+                    });
+            }
+        } catch (IOException e) {
+            log.warn("Kunde inte rensa temporär katalog: {}", dir, e);
+        }
+    }
+}
