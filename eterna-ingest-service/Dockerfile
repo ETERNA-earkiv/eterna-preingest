@@ -1,17 +1,17 @@
 # ─── Steg 1: Bygg React UI ───────────────────────────────────────────────────
 FROM node:20-alpine AS ui-builder
-WORKDIR /ui
+WORKDIR /build/eterna-ingest-ui
 COPY eterna-ingest-ui/package.json eterna-ingest-ui/package-lock.json* ./
 RUN npm ci
 COPY eterna-ingest-ui/ .
-RUN npm run build
+RUN mkdir -p ../eterna-ingest-service/src/main/resources/static && npm run build
 
 # ─── Steg 2: Bygg Java-tjänsten ──────────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-21 AS java-builder
 WORKDIR /build
 
 # Kopiera in UI-bygget som statiska resurser
-COPY --from=ui-builder /ui/dist /build/eterna-ingest-service/src/main/resources/static
+COPY --from=ui-builder /build/eterna-ingest-service/src/main/resources/static /build/eterna-ingest-service/src/main/resources/static
 
 # Kopiera Maven-filer och ladda ner beroenden (cachat lager)
 COPY pom.xml .
