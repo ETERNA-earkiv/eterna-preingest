@@ -21,6 +21,8 @@ COPY eterna-ingest-service/pom.xml eterna-ingest-service/
 # Autentisering mot GitHub Packages — kräver GITHUB_USERNAME och GITHUB_TOKEN som build-args
 ARG GITHUB_USERNAME
 ARG GITHUB_TOKEN
+RUN test -n "${GITHUB_USERNAME}" || { echo "ERROR: GITHUB_USERNAME build-arg saknas"; exit 1; } && \
+    test -n "${GITHUB_TOKEN}"    || { echo "ERROR: GITHUB_TOKEN build-arg saknas"; exit 1; }
 RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml <<EOF
 <settings>
   <servers>
