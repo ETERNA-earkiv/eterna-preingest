@@ -9,10 +9,12 @@ import se.eterna.commons.ingest.IngestOptions;
 import se.eterna.commons.ingest.IngestResult;
 import se.eterna.commons.ingest.IngestService;
 
-import java.io.ByteArrayInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
+import org.junit.jupiter.api.io.TempDir;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +23,9 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EternaClientImplTest {
+
+    @TempDir
+    Path tempDir;
 
     @Mock
     private EternaClient mockClient;
@@ -45,7 +50,7 @@ class EternaClientImplTest {
             .thenReturn(pendingJob)
             .thenReturn(completedJob);
 
-        var zip = new ByteArrayInputStream(new byte[]{});
+        Path zip = Files.createTempFile(tempDir, "test", ".zip");
         IngestResult result = ingestService.ingest("test.zip", zip, options);
 
         assertThat(result).isInstanceOf(IngestResult.Success.class);
@@ -66,8 +71,8 @@ class EternaClientImplTest {
         );
         when(mockClient.getJob("job-2")).thenReturn(failedJob);
 
-        IngestResult result = ingestService.ingest("test.zip",
-            new ByteArrayInputStream(new byte[]{}), options);
+        Path zip = Files.createTempFile(tempDir, "test", ".zip");
+        IngestResult result = ingestService.ingest("test.zip", zip, options);
 
         assertThat(result).isInstanceOf(IngestResult.Failure.class);
         assertThat(((IngestResult.Failure) result).jobId()).isEqualTo("job-2");
