@@ -1,13 +1,13 @@
 package se.eterna.commons.sip;
 
-import org.roda_project.commons_ip2.model.IP;
 import org.roda_project.commons_ip2.model.IPDescriptiveMetadata;
 import org.roda_project.commons_ip2.model.IPFile;
 import org.roda_project.commons_ip2.model.IPRepresentation;
 import org.roda_project.commons_ip2.model.MetadataType;
 import org.roda_project.commons_ip2.model.SIP;
 import org.roda_project.commons_ip2.model.impl.eark.EARKSIP;
-import org.roda_project.commons_ip2.utils.SIPBuilderUtils;
+import org.roda_project.commons_ip2.cli.model.enums.WriteStrategyEnum;
+import org.roda_project.commons_ip2.cli.utils.SIPBuilderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,7 @@ public class SipPackager {
         List<SipFile> files,
         Path workDir
     ) throws Exception {
-        SIP sip = new EARKSIP(sipId, IP.SIP_TYPE_EARK2, null, null, null);
+        SIP sip = new EARKSIP(sipId);
         sip.addCreatorSoftwareAgent(CREATOR_AGENT, CREATOR_VERSION);
 
         // Beskrivande metadata
@@ -57,7 +57,7 @@ public class SipPackager {
         }
 
         return sip.build(SIPBuilderUtils.getWriteStrategy(
-            SIPBuilderUtils.WriteStrategyEnum.ZIP, workDir
+            WriteStrategyEnum.ZIP, workDir
         ));
     }
 
