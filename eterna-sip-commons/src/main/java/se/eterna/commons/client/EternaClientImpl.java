@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class EternaClientImpl implements EternaClient {
 
@@ -32,9 +33,14 @@ public class EternaClientImpl implements EternaClient {
 
     private final WebClient webClient;
     private final String apiPath;
+    private final String username;
+    private final String password;
+    private final AtomicReference<String> cachedToken = new AtomicReference<>();
 
     public EternaClientImpl(EternaClientProperties props) {
         this.apiPath = props.apiPath();
+        this.username = props.username();
+        this.password = props.password();
 
         HttpClient httpClient = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) props.writeTimeout().toMillis())
@@ -42,14 +48,39 @@ public class EternaClientImpl implements EternaClient {
 
         var builder = WebClient.builder()
             .baseUrl(props.url())
-            .clientConnector(new ReactorClientHttpConnector(httpClient))
-            .defaultHeaders(h -> h.setBasicAuth(props.username(), props.password()));
+            .clientConnector(new ReactorClientHttpConnector(httpClient));
 
         if (props.extraHeaders() != null) {
             props.extraHeaders().forEach((k, v) -> builder.defaultHeader(k, v));
         }
 
         this.webClient = builder.build();
+    }
+
+    private String bearerToken() {
+        String token = cachedToken.get();
+        if (token != null) return token;
+
+        log.debug("Fetching JWT from ETERNA login");
+        Map<String, String> creds = Map.of("username", username, "password", password);
+        JsonNode resp = webClient.post()
+            .uri(apiPath + "/members/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(creds)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .block(Duration.ofSeconds(30));
+
+        if (resp == null || !resp.hasNonNull("token")) {
+            throw new IllegalStateException("ETERNA login svarade utan token");
+        }
+        token = resp.get("token").asText();
+        cachedToken.set(token);
+        return token;
+    }
+
+    private void clearToken() {
+        cachedToken.set(null);
     }
 
     @Override
@@ -62,6 +93,7 @@ public class EternaClientImpl implements EternaClient {
 
         return webClient.post()
             .uri(apiPath + "/transfers/create/resource?commit=true")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .header("X-Request-Id", UUID.randomUUID().toString())
             .body(BodyInserters.fromMultipartData(body))
@@ -73,12 +105,13 @@ public class EternaClientImpl implements EternaClient {
     @Override
     public Mono<TransferResource> uploadZipReactive(String filename, Flux<DataBuffer> data) {
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("upl", BodyInserters.fromPublisher(data, DataBuffer.class));
+        body.add("resource", BodyInserters.fromPublisher(data, DataBuffer.class));
 
         return webClient.post()
-            .uri(apiPath + "/transfers")
-            .contentType(MediaType.MULTIPART_FORM_DATA)
+            .uri(apiPath + "/transfers/create/resource?commit=true")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(BodyInserters.fromMultipartData(body))
             .retrieve()
             .bodyToMono(TransferResource.class);
@@ -101,6 +134,7 @@ public class EternaClientImpl implements EternaClient {
 
         return webClient.post()
             .uri(apiPath + "/jobs")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(jobBody)
             .retrieve()
@@ -112,6 +146,7 @@ public class EternaClientImpl implements EternaClient {
     public IngestJob getJob(String jobId) {
         return webClient.get()
             .uri(apiPath + "/jobs/{id}", jobId)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
             .retrieve()
             .bodyToMono(IngestJob.class)
             .block(Duration.ofSeconds(30));
@@ -122,12 +157,16 @@ public class EternaClientImpl implements EternaClient {
         try {
             webClient.get()
                 .uri(apiPath + "/aips/{id}", aipId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .block(Duration.ofSeconds(30));
             return true;
         } catch (WebClientResponseException.NotFound e) {
             return false;
+        } catch (WebClientResponseException.Unauthorized e) {
+            clearToken();
+            throw e;
         }
     }
 
@@ -138,6 +177,7 @@ public class EternaClientImpl implements EternaClient {
         body.put("ids", List.of(transferId));
         webClient.post()
             .uri(apiPath + "/transfers/delete")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken())
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(body)
             .retrieve()
@@ -145,6 +185,4 @@ public class EternaClientImpl implements EternaClient {
             .block(Duration.ofSeconds(30));
         log.debug("Deleted transfer: {}", transferId);
     }
-
-
 }
