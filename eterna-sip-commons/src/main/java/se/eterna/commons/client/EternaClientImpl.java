@@ -58,10 +58,10 @@ public class EternaClientImpl implements EternaClient {
             @Override public String getFilename() { return filename; }
         };
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("upl", resource);
+        body.add("resource", resource);
 
         return webClient.post()
-            .uri(apiPath + "/transfers")
+            .uri(apiPath + "/transfers/create/resource?commit=true")
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .header("X-Request-Id", UUID.randomUUID().toString())
             .body(BodyInserters.fromMultipartData(body))
@@ -87,15 +87,14 @@ public class EternaClientImpl implements EternaClient {
     @Override
     public IngestJob createJob(List<String> transferIds, IngestOptions options) {
         Map<String, Object> sourceObjects = new HashMap<>();
-        sourceObjects.put("type", "list");
+        sourceObjects.put("@type", "SelectedItemsListRequest");
         sourceObjects.put("ids", transferIds);
-        sourceObjects.put("selectedClass", "org.roda.core.data.v2.ip.TransferredResource");
 
         Map<String, Object> jobBody = new HashMap<>();
         jobBody.put("name", "Ingest via eterna-sip-commons");
         jobBody.put("plugin", options.sipToAipPlugin());
-        jobBody.put("pluginType", "INGEST");
         jobBody.put("sourceObjects", sourceObjects);
+        jobBody.put("sourceObjectsClass", "org.roda.core.data.v2.ip.TransferredResource");
         jobBody.put("priority", "MEDIUM");
         jobBody.put("parallelism", "NORMAL");
         jobBody.put("pluginParameters", options.toPluginParameters());
@@ -134,8 +133,13 @@ public class EternaClientImpl implements EternaClient {
 
     @Override
     public void deleteTransfer(String transferId) {
-        webClient.delete()
-            .uri(apiPath + "/transfers/{id}", transferId)
+        Map<String, Object> body = new HashMap<>();
+        body.put("@type", "SelectedItemsListRequest");
+        body.put("ids", List.of(transferId));
+        webClient.post()
+            .uri(apiPath + "/transfers/delete")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(body)
             .retrieve()
             .toBodilessEntity()
             .block(Duration.ofSeconds(30));
