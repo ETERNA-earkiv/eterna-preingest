@@ -21,7 +21,7 @@ export function DynamicForm({ schema, register, errors, prefix = 'fields' }: Pro
           field={field}
           required={required.includes(name)}
           register={register}
-          error={errors[prefix]?.[name]}
+          error={(errors as any)[prefix]?.[name]}
           prefix={prefix}
         />
       ))}
