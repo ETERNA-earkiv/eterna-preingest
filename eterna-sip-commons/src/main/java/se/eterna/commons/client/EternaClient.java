@@ -5,12 +5,12 @@ import reactor.core.publisher.Mono;
 import org.springframework.core.io.buffer.DataBuffer;
 import se.eterna.commons.ingest.IngestOptions;
 
-import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
 
 public interface EternaClient {
 
-    TransferResource uploadZip(String filename, InputStream zip);
+    TransferResource uploadZip(String filename, Path zipPath);
 
     Mono<TransferResource> uploadZipReactive(String filename, Flux<DataBuffer> data);
 

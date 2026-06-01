@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.netty.channel.ChannelOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import se.eterna.commons.ingest.IngestOptions;
 
-import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -53,9 +53,12 @@ public class EternaClientImpl implements EternaClient {
     }
 
     @Override
-    public TransferResource uploadZip(String filename, InputStream zip) {
+    public TransferResource uploadZip(String filename, Path zipPath) {
+        FileSystemResource resource = new FileSystemResource(zipPath) {
+            @Override public String getFilename() { return filename; }
+        };
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("upl", new NamedInputStreamResource(filename, zip));
+        body.add("upl", resource);
 
         return webClient.post()
             .uri(apiPath + "/transfers")
@@ -139,18 +142,5 @@ public class EternaClientImpl implements EternaClient {
         log.debug("Deleted transfer: {}", transferId);
     }
 
-    // Hjälpklass för att namnge InputStream-resursen i multipart-uppladdning
-    private static final class NamedInputStreamResource extends InputStreamResource {
-        private final String filename;
 
-        NamedInputStreamResource(String filename, InputStream stream) {
-            super(stream);
-            this.filename = filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return filename;
-        }
-    }
 }

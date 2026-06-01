@@ -7,7 +7,7 @@ import se.eterna.commons.client.IngestJob;
 import se.eterna.commons.client.TransferResource;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -24,9 +24,9 @@ public class IngestService {
         this.client = client;
     }
 
-    public IngestResult ingest(String filename, InputStream zip, IngestOptions options)
+    public IngestResult ingest(String filename, Path zipPath, IngestOptions options)
         throws IOException {
-        TransferResource transfer = client.uploadZip(filename, zip);
+        TransferResource transfer = client.uploadZip(filename, zipPath);
         log.info("Uploaded SIP: transferId={}", transfer.transferId());
 
         IngestJob job = client.createJob(List.of(transfer.transferId()), options);

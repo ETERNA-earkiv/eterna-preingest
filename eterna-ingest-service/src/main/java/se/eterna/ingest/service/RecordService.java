@@ -86,8 +86,8 @@ public class RecordService {
             Path zipPath = sipPackager.buildZip(sipId, metadataFile, metadataType, sipFiles, workDir);
 
             // Ladda upp till ETERNA
-            try (var zipStream = Files.newInputStream(zipPath)) {
-                TransferResource transfer = eternaClient.uploadZip(sipId + ".zip", zipStream);
+            {
+                TransferResource transfer = eternaClient.uploadZip(sipId + ".zip", zipPath);
                 log.info("SIP uppladdad: transferId={}", transfer.transferId());
 
                 // Starta ingest-jobb
