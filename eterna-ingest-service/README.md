@@ -163,9 +163,14 @@ Fullständig specifikation: **http://localhost:8082/swagger-ui.html**
 | `STARTED` | Pågår |
 | `COMPLETED` | Lyckades |
 | `COMPLETED_WITH_PROBLEMS` | Lyckades med varningar |
-| `FAILED_DURING_INGEST` | Misslyckades under ingest |
+| `FAILED_TO_COMPLETE` | Misslyckades under körning |
+| `FAILED_DURING_CREATION` | Misslyckades när jobbet skapades/startades |
+| `FAILED_DURING_INGEST` | Misslyckades under ingest (bakåtkompatibilitet) |
 | `FAILED` | Misslyckades |
 | `STOPPED` | Avbrutet |
+| `PENDING_APPROVAL` | Väntar på godkännande |
+| `REJECTED` | Avvisat |
+| `SCHEDULED` | Schemalagt |
 
 ### GET `/api/schema` — Hämta JSON Schema
 

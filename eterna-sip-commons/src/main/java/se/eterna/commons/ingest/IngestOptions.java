@@ -48,12 +48,11 @@ public record IngestOptions(
         map.put("parameter.do_descriptive_metadata_validation", String.valueOf(metadataValidation));
         map.put("parameter.do_producer_authorization_check", String.valueOf(producerAuthCheck));
         map.put("parameter.do_apply_disposal_rules", String.valueOf(applyDisposalRules));
+        map.put("parameter.do_auto_accept", "true");
         map.put("parameter.create_submission", String.valueOf(createSubmission));
         map.put("parameter.total_steps", String.valueOf(totalSteps));
         map.put("parameter.sip_to_aip_class", sipToAipPlugin);
         map.put("parameter.create.premis.skeleton", "true");
-        map.put("parameter.reporting_class", "true");
-        map.put("parameter.accept", "true");
         if (emailNotification != null && !emailNotification.isBlank()) {
             map.put("parameter.email_notification", emailNotification);
         }

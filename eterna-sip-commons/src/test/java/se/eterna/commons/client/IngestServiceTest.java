@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import se.eterna.commons.ingest.IngestOptions;
 import se.eterna.commons.ingest.IngestResult;
 import se.eterna.commons.ingest.IngestService;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class EternaClientImplTest {
+class IngestServiceTest {
 
     @TempDir
     Path tempDir;
@@ -87,15 +88,38 @@ class EternaClientImplTest {
         assertThat(params.get("parameter.parent_id")).isEqualTo("parent-123");
         assertThat(params).containsKey("parameter.do_file_format_identification");
         assertThat(params).containsKey("parameter.sip_to_aip_class");
+        assertThat(params).containsEntry("parameter.do_auto_accept", "true");
+        assertThat(params).doesNotContainKeys("parameter.accept", "parameter.reporting_class");
     }
 
     @Test
     void ingestJob_terminalStates_identifiedCorrectly() {
         assertThat(new IngestJob("j", "n", "COMPLETED", 100).isTerminal()).isTrue();
         assertThat(new IngestJob("j", "n", "FAILED", 0).isTerminal()).isTrue();
+        assertThat(new IngestJob("j", "n", "FAILED_TO_COMPLETE", 0).isTerminal()).isTrue();
+        assertThat(new IngestJob("j", "n", "FAILED_DURING_CREATION", 0).isTerminal()).isTrue();
         assertThat(new IngestJob("j", "n", "FAILED_DURING_INGEST", 0).isTerminal()).isTrue();
         assertThat(new IngestJob("j", "n", "STARTED", 50).isTerminal()).isFalse();
         assertThat(new IngestJob("j", "n", "CREATED", 0).isTerminal()).isFalse();
+    }
+
+    @Test
+    void ingestJob_deserializesEternaJobStatsCompletionPercentage() throws Exception {
+        String json = """
+            {
+              "id": "job-4",
+              "name": "Ingest",
+              "state": "STARTED",
+              "jobStats": {
+                "completionPercentage": 75
+              }
+            }
+            """;
+
+        IngestJob job = new ObjectMapper().readValue(json, IngestJob.class);
+
+        assertThat(job.id()).isEqualTo("job-4");
+        assertThat(job.percentageCompleted()).isEqualTo(75);
     }
 
     @Test

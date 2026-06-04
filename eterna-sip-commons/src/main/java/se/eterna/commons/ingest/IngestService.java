@@ -6,7 +6,6 @@ import se.eterna.commons.client.EternaClient;
 import se.eterna.commons.client.IngestJob;
 import se.eterna.commons.client.TransferResource;
 import se.eterna.commons.exception.EternaClientException;
-import se.eterna.commons.exception.IngestTimeoutException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -63,7 +62,8 @@ public class IngestService {
                 return new IngestResult.Failure(jobId, "Avbrutet under polling");
             }
         }
-        throw new IngestTimeoutException(jobId, timeout);
+        return new IngestResult.Failure(jobId,
+            "Timeout: ingest-jobb avslutades inte inom " + timeout);
     }
 
     private TransferResource uploadWithRetry(String filename, Path zipPath, IngestOptions options)

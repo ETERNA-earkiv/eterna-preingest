@@ -2,6 +2,9 @@
 target/
 *.jar
 *.war
+eterna-ingest-service/src/main/resources/static/
+eterna-ingest-ui/node_modules/
+eterna-ingest-ui/dist/
 
 # Environment
 .env
@@ -18,4 +21,5 @@ Thumbs.db
 
 # Logs
 *.log
+*.log.txt
 logs/

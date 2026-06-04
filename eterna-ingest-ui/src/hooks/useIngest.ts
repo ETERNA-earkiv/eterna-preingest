@@ -24,8 +24,18 @@ export function useIngest() {
   }, [])
 
   const poll = useCallback(async (id: string) => {
-    const TERMINAL = ['COMPLETED', 'FAILED', 'FAILED_DURING_INGEST',
-                      'COMPLETED_WITH_PROBLEMS', 'STOPPED']
+    const TERMINAL = [
+      'COMPLETED',
+      'COMPLETED_WITH_PROBLEMS',
+      'FAILED',
+      'FAILED_TO_COMPLETE',
+      'FAILED_DURING_CREATION',
+      'FAILED_DURING_INGEST',
+      'STOPPED',
+      'PENDING_APPROVAL',
+      'REJECTED',
+      'SCHEDULED'
+    ]
     const MAX_POLLS = 360  // max 30 min med 5s intervall
     let count = 0
 

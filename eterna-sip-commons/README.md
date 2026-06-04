@@ -100,7 +100,7 @@ switch (result) {
 IngestResult status = ingestService.awaitCompletion(
     "job-id",
     Duration.ofSeconds(10),   // Poll-intervall
-    Duration.ofMinutes(60)    // Timeout — kastar IngestTimeoutException vid timeout
+    Duration.ofMinutes(60)    // Timeout — returnerar IngestResult.Failure vid timeout
 );
 ```
 
@@ -252,7 +252,7 @@ validator.finish(); // Kastar XmlValidationException om ogiltig XML
 ```
 RuntimeException
 └── EternaClientException      — ETERNA API-kommunikationsfel
-    └── IngestTimeoutException — Ingest-jobb avslutades inte i tid
+    └── IngestTimeoutException — Reserv för klienter som vill kasta timeout som undantag
 SipBuildException              — SIP-paketeringen misslyckades
 XmlValidationException         — XML uppfyller inte XSD-schemat
 ```
