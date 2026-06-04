@@ -1,5 +1,6 @@
 package se.eterna.commons.ingest;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,7 +15,9 @@ public record IngestOptions(
     boolean createSubmission,
     boolean forceParentId,
     int totalSteps,
-    String emailNotification
+    String emailNotification,
+    int maxRetries,
+    Duration retryDelay
 ) {
     private static final String DEFAULT_PLUGIN =
         "org.roda.core.plugins.base.ingest.v2.ConfigurableIngestPlugin";
@@ -22,7 +25,17 @@ public record IngestOptions(
     public static IngestOptions defaults(String parentAipId) {
         return new IngestOptions(
             parentAipId, DEFAULT_PLUGIN,
-            false, true, true, true, true, true, true, 8, null
+            false, true, true, true, true, true, true, 8, null,
+            3, Duration.ofSeconds(5)
+        );
+    }
+
+    /** Variant utan retry — för bakåtkompatibilitet med existerande kod. */
+    public static IngestOptions noRetry(String parentAipId) {
+        return new IngestOptions(
+            parentAipId, DEFAULT_PLUGIN,
+            false, true, true, true, true, true, true, 8, null,
+            0, Duration.ZERO
         );
     }
 

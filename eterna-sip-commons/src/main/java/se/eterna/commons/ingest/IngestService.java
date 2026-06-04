@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import se.eterna.commons.client.EternaClient;
 import se.eterna.commons.client.IngestJob;
 import se.eterna.commons.client.TransferResource;
+import se.eterna.commons.exception.EternaClientException;
+import se.eterna.commons.exception.IngestTimeoutException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,8 +27,8 @@ public class IngestService {
     }
 
     public IngestResult ingest(String filename, Path zipPath, IngestOptions options)
-        throws IOException {
-        TransferResource transfer = client.uploadZip(filename, zipPath);
+            throws IOException {
+        TransferResource transfer = uploadWithRetry(filename, zipPath, options);
         log.info("Uploaded SIP: transferId={}", transfer.transferId());
 
         IngestJob job = client.createJob(List.of(transfer.transferId()), options);
@@ -47,8 +49,6 @@ public class IngestService {
 
             if (job.isTerminal()) {
                 if (job.isSuccess()) {
-                    // ETERNA rapporter innehåller aipId — returnera jobId för nu,
-                    // anroparen kan hämta aipId separat via getJob-polling i sin kontext
                     return new IngestResult.Success(jobId, null);
                 } else {
                     return new IngestResult.Failure(jobId,
@@ -63,6 +63,36 @@ public class IngestService {
                 return new IngestResult.Failure(jobId, "Avbrutet under polling");
             }
         }
-        return new IngestResult.Failure(jobId, "Timeout efter " + timeout);
+        throw new IngestTimeoutException(jobId, timeout);
+    }
+
+    private TransferResource uploadWithRetry(String filename, Path zipPath, IngestOptions options)
+            throws IOException {
+        int maxAttempts = Math.max(1, options.maxRetries() + 1);
+        EternaClientException lastException = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return client.uploadZip(filename, zipPath);
+            } catch (EternaClientException e) {
+                lastException = e;
+                if (attempt < maxAttempts) {
+                    log.warn("Upload misslyckades (försök {}/{}): {} — försöker igen om {}",
+                        attempt, maxAttempts, e.getMessage(), options.retryDelay());
+                    sleep(options.retryDelay());
+                }
+            }
+        }
+        throw new EternaClientException(
+            "Upload misslyckades efter " + maxAttempts + " försök", lastException);
+    }
+
+    private void sleep(Duration duration) {
+        if (duration.isZero()) return;
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

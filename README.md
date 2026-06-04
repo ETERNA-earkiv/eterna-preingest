@@ -240,37 +240,40 @@ Returnerar status för ett pågående eller avslutat ingest-jobb.
 
 Returnerar schemat i JSON Schema-format (Draft-07) som React-UI:t använder för att rendera formulär dynamiskt.
 
-**Response 200 OK:**
+---
 
-```json
-{
-  "record": {
-    "metadataType": "arende",
-    "label": { "sv": "Ärende", "en": "Case" },
-    "schema": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "required": ["arendenummer", "titel"],
-      "properties": {
-        "arendenummer": { "type": "string", "title": "Ärendenummer" },
-        "titel":        { "type": "string", "title": "Titel" },
-        "status":       { "type": "string", "enum": ["Öppen", "Avslutad"] }
-      }
-    }
-  },
-  "item": { ... }
-}
+## eterna-sip-commons — biblioteksreferens
+
+`eterna-sip-commons` är ett Spring Boot auto-konfigurerat bibliotek. Lägg till det i er `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>se.eterna</groupId>
+    <artifactId>eterna-sip-commons</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+Spring Boot auto-konfigurerar alla beans automatiskt när `eterna.url` är satt i properties.
+
+### Paketstruktur
+
+```
+se.eterna.commons
+├── client/          EternaClient, ApiResult, NamedInputStreamResource
+├── ingest/          IngestService, BatchIngestService, IngestOptions, IngestResult
+├── sip/             SipPackager, SipFile, SipOutputTarget, FileOutputTarget, EternaUploadTarget
+│   └── domain/      ArchivableRecord, RecordSipBuilder
+├── io/              DataBufferOutputStream, DataBufferInputStream, StreamProcessor, StreamPipeline
+├── xml/             StaxXmlValidator
+└── exception/       EternaClientException, SipBuildException, XmlValidationException, IngestTimeoutException
 ```
 
 ---
 
-## Hjälpfunktioner — eterna-sip-commons
-
-`eterna-sip-commons` är ett Spring Boot auto-konfigurerat bibliotek som exponerar tre kärnkomponenter.
-
 ### EternaClient
 
-Kommunicerar med ETERNAs REST API. Konfigureras via Spring Boot-properties.
+Kommunicerar med ETERNAs REST API.
 
 ```java
 @Autowired EternaClient eternaClient;
@@ -304,15 +307,26 @@ eterna:
   api-path: /api/v2
   read-timeout: 120s
   write-timeout: 600s
-  extra-headers:             # Valfria extra HTTP-headers
+  extra-headers:
     X-Custom-Header: värde
+```
+
+**ApiResult — typsäker felhantering:**
+
+```java
+// Förväntas i framtida version av EternaClient
+ApiResult<TransferResource> result = eternaClient.tryUploadZip("min-sip.zip", zipPath);
+switch (result) {
+    case ApiSuccess<TransferResource> ok  -> startJob(ok.value());
+    case ApiError<TransferResource>   err -> log.error("Upload misslyckades: {}", err.message());
+}
 ```
 
 ---
 
 ### IngestService
 
-Orkestreringslagret ovanpå `EternaClient` — laddar upp SIP, startar jobb och pollar tills det är klart.
+Orkestreringslagret — laddar upp SIP, startar jobb och pollar tills det är klart.
 
 ```java
 @Autowired IngestService ingestService;
@@ -324,42 +338,65 @@ IngestResult result = ingestService.ingest(
     IngestOptions.defaults("parent-aip-uuid")
 );
 
-if (result.isSuccess()) {
-    IngestResult.Success ok = (IngestResult.Success) result;
-    System.out.println("Jobb-ID: " + ok.jobId());
-} else {
-    IngestResult.Failure fail = (IngestResult.Failure) result;
-    System.out.println("Fel: " + fail.errorMessage());
+switch (result) {
+    case IngestResult.Success ok   -> System.out.println("Klar: " + ok.jobId());
+    case IngestResult.Failure fail -> System.out.println("Fel: " + fail.errorMessage());
 }
 
 // Polla ett befintligt jobb manuellt
 IngestResult status = ingestService.awaitCompletion(
     "job-id",
     Duration.ofSeconds(10),   // Poll-intervall
-    Duration.ofMinutes(60)    // Timeout
+    Duration.ofMinutes(60)    // Timeout — kastar IngestTimeoutException om timeout uppnås
 );
 ```
 
-**IngestOptions:**
+**IngestOptions med retry:**
 
 ```java
-// Standardinställningar (rekommenderat)
+// Standardinställningar — 3 retry-försök med 5 sekunders väntan
 IngestOptions opts = IngestOptions.defaults("parent-aip-uuid");
+
+// Utan retry
+IngestOptions opts = IngestOptions.noRetry("parent-aip-uuid");
 
 // Anpassade inställningar
 IngestOptions opts = new IngestOptions(
     "parent-aip-uuid",
     "org.roda.core.plugins.base.ingest.v2.ConfigurableIngestPlugin",
-    false,   // virusCheck
-    true,    // formatIdentification
-    true,    // metadataValidation
-    true,    // producerAuthCheck
-    true,    // applyDisposalRules
-    true,    // createSubmission
-    true,    // forceParentId
-    8,       // totalSteps
-    "admin@example.com"  // emailNotification (null = ingen e-post)
+    false,               // virusCheck
+    true,                // formatIdentification
+    true,                // metadataValidation
+    true,                // producerAuthCheck
+    true,                // applyDisposalRules
+    true,                // createSubmission
+    true,                // forceParentId
+    8,                   // totalSteps
+    "admin@example.com", // emailNotification (null = ingen e-post)
+    5,                   // maxRetries — antal omförsök vid upload-fel
+    Duration.ofSeconds(10) // retryDelay — väntetid mellan försök
 );
+```
+
+---
+
+### BatchIngestService
+
+Ingestas en lista med SIP-paket sekventiellt. Fortsätter även om enstaka jobb misslyckas.
+
+```java
+@Autowired BatchIngestService batchIngestService;
+
+List<BatchIngestService.SipJob> jobs = List.of(
+    new BatchIngestService.SipJob("arende-001.zip", path1, IngestOptions.defaults(parentId)),
+    new BatchIngestService.SipJob("arende-002.zip", path2, IngestOptions.defaults(parentId)),
+    new BatchIngestService.SipJob("arende-003.zip", path3, IngestOptions.defaults(parentId))
+);
+
+List<IngestResult> results = batchIngestService.ingestAll(jobs);
+
+long successes = results.stream().filter(IngestResult::isSuccess).count();
+System.out.println(successes + "/" + results.size() + " lyckades");
 ```
 
 ---
@@ -371,27 +408,131 @@ Bygger ett E-ARK SIP ZIP från metadata-XML och filer.
 ```java
 SipPackager packager = new SipPackager();
 
-// Bygg en SIP ZIP
 Path sipZip = packager.buildZip(
-    "unik-sip-id",           // Används som SIP-identifierare i METS
-    metadataXmlPath,         // Path till metadata-XML-filen
-    "arende",                // Metadata-typ (matchar schema.yaml metadataType)
-    List.of(                 // Innehållsfiler
+    "unik-sip-id",          // SIP-identifierare i METS
+    metadataXmlPath,        // Path till metadata-XML-filen
+    "arende",               // Metadata-typ
+    List.of(
         new SipFile("ansökan.pdf", inputStream)
     ),
-    workDir                  // Temporär katalog för bygget
+    workDir                 // Temporär katalog
 );
-// sipZip pekar på ZIP-filen — anroparen ansvarar för cleanup
 ```
 
-**SipFile:**
+---
+
+### ArchivableRecord och RecordSipBuilder
+
+Domänvänligt API för att bygga SIP av poster och handlingar.
 
 ```java
-// Från fil
-new SipFile("fil.pdf", Files.newInputStream(path))
+@Autowired RecordSipBuilder recordSipBuilder;
 
-// Från byte-array
-new SipFile("fil.pdf", new ByteArrayInputStream(bytes))
+ArchivableRecord post = ArchivableRecord.builder()
+    .id("arende-2024-001")
+    .metadataFile(metadataXmlPath)
+    .metadataType("arende")
+    .file(new SipFile("ansökan.pdf", stream))
+    .file(new SipFile("bilaga.pdf", stream2))
+    .build();
+
+Path zipPath = recordSipBuilder.build(post, workDir);
+// zipPath → skicka vidare med IngestService eller SipOutputTarget
+```
+
+---
+
+### SipOutputTarget
+
+Abstraktion för vad som händer med ett färdigbyggt SIP ZIP.
+
+```java
+// EternaUploadTarget (default) — laddar upp direkt till ETERNA
+SipOutputTarget target = new EternaUploadTarget(eternaClient);
+TransferResource transfer = target.complete("min-sip.zip", zipPath);
+
+// FileOutputTarget — sparar till katalog (för testning/debug)
+SipOutputTarget target = new FileOutputTarget(Path.of("/tmp/sips"));
+target.complete("min-sip.zip", zipPath); // Kopierar filen, returnerar null
+
+// Egen implementering
+@Bean
+public SipOutputTarget mySipOutputTarget(EternaClient client) {
+    return (filename, path) -> {
+        log.info("Uploading {}", filename);
+        return client.uploadZip(filename, path);
+    };
+}
+```
+
+---
+
+### IO-streaming
+
+Reaktiva I/O-utilities för streaming av data utan in-memory-buffring.
+
+```java
+// DataBufferOutputStream — skriv till reaktiv Flux<DataBuffer>
+Flux<DataBuffer> dataFlux = Flux.create(sink -> {
+    DataBufferOutputStream out = new DataBufferOutputStream(bufferFactory, sink);
+    // Skriv till out — data chunkas till sinken
+    out.write(bytes);
+    out.close();
+    sink.complete();
+});
+
+// StreamPipeline — kör data genom en processor-kedja
+StreamPipeline pipeline = new StreamPipeline();
+pipeline.process(inputStream, outputStream,
+    checksumProcessor.then(zipEntryProcessor));
+```
+
+---
+
+### StaxXmlValidator
+
+Streaming XML-validering mot ett XSD-schema utan in-memory-buffring.
+
+```java
+Schema schema = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+    .newSchema(new File("schema.xsd"));
+
+StaxXmlValidator validator = new StaxXmlValidator();
+validator.start(schema);
+
+// Mata in data i bitar (t.ex. från en reaktiv ström)
+for (ByteBuffer chunk : xmlChunks) {
+    validator.accept(chunk);
+}
+
+validator.finish(); // Blockerar och kastar XmlValidationException om ogiltig XML
+```
+
+---
+
+### Undantagshierarki
+
+```
+RuntimeException
+└── EternaClientException      — ETERNA API-kommunikationsfel
+    └── IngestTimeoutException — Ingest-jobb avslutades inte i tid
+SipBuildException              — E-ARK SIP-paketeringen misslyckades
+XmlValidationException         — XML uppfyller inte XSD-schemat
+```
+
+```java
+try {
+    ingestService.ingest("sip.zip", path, options);
+} catch (IngestTimeoutException e) {
+    // Jobbet startade men slutfördes inte inom timeout
+    log.warn("Timeout: {}", e.getMessage());
+} catch (EternaClientException e) {
+    // Nätverksfel, autentiseringsfel etc.
+    log.error("ETERNA-fel: {}", e.getMessage(), e);
+} catch (SipBuildException e) {
+    // Fel vid paketering — metadata saknas, filsystemfel etc.
+    log.error("SIP-fel: {}", e.getMessage(), e);
+}
 ```
 
 ---
@@ -405,40 +546,29 @@ Tjänsten genererar automatiskt de filer ETERNA behöver för att förstå er cu
 ```
 overlay/
 ├── schemas/
-│   ├── arende.xsd           # XSD-schema — ETERNA validerar XML mot denna
+│   ├── arende.xsd
 │   └── handling.xsd
 ├── crosswalks/
 │   ├── ingest/
-│   │   ├── arende.xslt      # Mappar XML → Solr-fält (indexering)
+│   │   ├── arende.xslt
 │   │   └── handling.xslt
 │   └── dissemination/html/
-│       ├── arende.xslt      # Renderar metadata som HTML i ETERNA UI
+│       ├── arende.xslt
 │       └── handling.xslt
 ├── templates/
-│   ├── arende.xml.hbs       # Handlebars-mall för ETERNAs metadata-editor
+│   ├── arende.xml.hbs
 │   └── handling.xml.hbs
 └── i18n/
-    ├── ServerMessages.properties       # Engelska fältnamn
-    └── ServerMessages_sv_SE.properties # Svenska fältnamn
+    ├── ServerMessages.properties
+    └── ServerMessages_sv_SE.properties
 ```
 
 ### Installera overlay i ETERNA
 
 ```bash
-# 1. Kopiera overlay-filer
 docker compose cp eterna-ingest-service:/config/overlay/. /path/to/eterna/config/
-
-# 2. Starta om ETERNA
 docker compose restart eterna
-
-# 3. Verifiera — ny metadata-typ ska synas i ETERNAs ingest-konfiguration
 ```
-
-### Solr-indexering
-
-Ingest-XSLT mappar fälten till Solrs dynamiska fältmönster:
-- `date`/`datetime`-fält → `fältnamn_dt` (sökbar som datum)
-- Övriga fält → `fältnamn_txt` (fulltext-sökbar)
 
 ---
 
@@ -448,17 +578,7 @@ Ingest-XSLT mappar fälten till Solrs dynamiska fältmönster:
 |---|---|---|
 | [`examples/schema-arende.yaml`](examples/schema-arende.yaml) | `arende` + `handling` | Ärendehantering för kommuner/myndigheter |
 | [`examples/schema-ead-2002.yaml`](examples/schema-ead-2002.yaml) | `ead_2002` | Arkivförteckning enligt EAD 2002 / ISAD(G) |
-| [`examples/schema-ead-3.yaml`](examples/schema-ead-3.yaml) | `ead_3` | Arkivförteckning enligt EAD 3 (modernare standard) |
-
-EAD-schemana använder exakt samma fältnamn som ETERNAs inbyggda EAD-mallar. Se kommentarerna i respektive fil för information om metadatatyp-konflikter om ni även ingesta äkta EAD-SIPar direkt i ETERNA.
-
-### Eget schema — kom igång
-
-1. Kopiera ett exempelschema: `cp examples/schema-arende.yaml min-schema.yaml`
-2. Sätt `INGEST_SCHEMA_PATH=min-schema.yaml`
-3. Starta tjänsten — overlay genereras automatiskt
-4. Installera overlay i ETERNA och starta om
-5. Testa via Swagger UI på http://localhost:8082/swagger-ui.html
+| [`examples/schema-ead-3.yaml`](examples/schema-ead-3.yaml) | `ead_3` | Arkivförteckning enligt EAD 3 |
 
 ---
 
@@ -467,29 +587,17 @@ EAD-schemana använder exakt samma fältnamn som ETERNAs inbyggda EAD-mallar. Se
 **Förutsättningar:** Java 21, Maven 3.9+, Node 20+, GitHub-token med `read:packages`
 
 ```bash
-# Maven-modulerna
 mvn clean package -DskipTests
+```
 
-# Kör tjänsten mot ett eget schema
+Kör mot eget schema:
+
+```bash
 cd eterna-ingest-service
 INGEST_SCHEMA_PATH=../examples/schema-arende.yaml \
 ETERNA_URL=http://localhost:8080 \
 java -jar target/eterna-ingest-service-*.jar
 ```
-
-### Använda eterna-sip-commons som bibliotek
-
-Lägg till beroendet i er `pom.xml`:
-
-```xml
-<dependency>
-    <groupId>se.eterna</groupId>
-    <artifactId>eterna-sip-commons</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-```
-
-Spring Boot auto-konfigurerar `EternaClient` och `IngestService` automatiskt när ni sätter `eterna.*`-properties. `SipPackager` skapas som en Spring Bean och kan injiceras direkt.
 
 ---
 
@@ -500,21 +608,24 @@ schema.yaml (kundkonfiguration)
       │
       ▼
 eterna-ingest-service (Spring Boot :8082)
-  ├── POST /api/records          ← Ta emot metadata + filer
-  ├── GET  /api/records/{jobId}  ← Polla ingest-status
-  ├── GET  /api/schema           ← JSON Schema för UI-rendering
-  └── OverlayGenerator           ← Genererar ETERNA config-filer vid startup
+  ├── POST /api/records
+  ├── GET  /api/records/{jobId}
+  ├── GET  /api/schema
+  └── OverlayGenerator
       │
       ▼
 eterna-sip-commons
-  ├── SchemaValidator    (validerar fältvärden mot schema.yaml)
-  ├── MetadataXmlGenerator (skapar XML från fältvärden)
-  ├── SipPackager        (paketerar E-ARK SIP via commons-ip2)
-  └── EternaClient / IngestService (REST-kommunikation + polling)
+  ├── exception/         EternaClientException, SipBuildException, XmlValidationException
+  ├── client/            EternaClient, ApiResult<T>, NamedInputStreamResource
+  ├── ingest/            IngestService (+ retry), BatchIngestService, IngestOptions, IngestResult
+  ├── sip/               SipPackager, SipOutputTarget, EternaUploadTarget, FileOutputTarget
+  │   └── domain/        ArchivableRecord, RecordSipBuilder
+  ├── io/                DataBufferOutputStream, DataBufferInputStream, StreamProcessor
+  └── xml/               StaxXmlValidator
       │
       ▼
-ETERNA (digital bevaranderepository)
-  ├── Transfer API       ← Mottar SIP ZIP
-  ├── Jobs API           ← Kör ConfigurableIngestPlugin
-  └── AIP                ← Resultatet: arkiverat informationspaket
+ETERNA
+  ├── Transfer API
+  ├── Jobs API
+  └── AIP
 ```
