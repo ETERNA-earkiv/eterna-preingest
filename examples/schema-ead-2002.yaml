@@ -1,0 +1,195 @@
+# Exempelschema: EAD 2002 (Encoded Archival Description)
+#
+# Använder samma fältnamn som ETERNAs inbyggda EAD 2002-mall.
+# Detta gör att ETERNA kan visa och söka i metadata via genererade
+# overlay-filer utan extra anpassning.
+#
+# ⚠ OBS: XML-filen som produceras är ett förenklat platt format
+#   (fältnamn som XML-element) — inte fullständig EAD 2002-XML.
+#   För äkta EAD 2002-XML krävs en anpassad MetadataXmlGenerator.
+#
+# ⚠ metadataType "ead_2002" matchar ETERNAs inbyggda typnamn.
+#   Installerad overlay kommer att ta över ETERNAs standardkonfiguration
+#   för denna typ. Byt namn (t.ex. "ead_2002_flat") om ni ingesta
+#   äkta EAD-SIPar via ETERNA separat.
+#
+# Referens: ISAD(G) / EAD 2002-standarden
+
+record:
+  metadataType: "ead_2002"
+  label:
+    sv: "Arkivförteckning (EAD 2002)"
+    en: "Archival Description (EAD 2002)"
+
+# Inget item-nivå — EAD beskriver en arkivalisk enhet per post
+
+# ─────────────────────────────────────────────
+# Identitetsuppgifter
+# ─────────────────────────────────────────────
+recordFields:
+  - name: id
+    type: string
+    required: true
+    label: { sv: "Referenskod / Identifierare", en: "Reference code / Identifier" }
+
+  - name: title
+    type: string
+    required: true
+    label: { sv: "Titel", en: "Title" }
+
+  - name: level
+    type: enumeration
+    required: true
+    values: ["fonds", "subfonds", "collection", "series", "subseries", "recordgrp", "subgrp", "file", "item", "class"]
+    label: { sv: "Beskrivningsnivå", en: "Description level" }
+
+  - name: dateInitial
+    type: date
+    required: false
+    label: { sv: "Startdatum", en: "Initial date" }
+
+  - name: dateFinal
+    type: date
+    required: false
+    label: { sv: "Slutdatum", en: "Final date" }
+
+  - name: descDate
+    type: string
+    required: false
+    label: { sv: "Beskrivande datumangivelse", en: "Descriptive date" }
+
+  - name: countryCode
+    type: string
+    required: false
+    label: { sv: "Landskod (ISO 3166-1)", en: "Country code (ISO 3166-1)" }
+
+  - name: repositoryCode
+    type: string
+    required: false
+    label: { sv: "Arkivkod", en: "Repository code" }
+
+  - name: repository
+    type: string
+    required: false
+    label: { sv: "Arkivinstitution", en: "Repository" }
+
+  - name: extent
+    type: text
+    required: false
+    label: { sv: "Omfång och medium", en: "Extent and medium" }
+
+# ─────────────────────────────────────────────
+# Kontextuppgifter
+# ─────────────────────────────────────────────
+
+  - name: creator
+    type: string
+    required: false
+    label: { sv: "Skapare", en: "Name of creator(s)" }
+
+  - name: producer
+    type: string
+    required: false
+    label: { sv: "Producent", en: "Producer" }
+
+  - name: bioghist
+    type: text
+    required: false
+    label: { sv: "Biografi/administrativ historia", en: "Administrative and biographical history" }
+
+  - name: custodhist
+    type: text
+    required: false
+    label: { sv: "Förvalningshistorik", en: "Custodial history" }
+
+  - name: acqinfo
+    type: text
+    required: false
+    label: { sv: "Förvärvsuppgifter", en: "Immediate source of acquisition or transfer" }
+
+# ─────────────────────────────────────────────
+# Innehåll och struktur
+# ─────────────────────────────────────────────
+
+  - name: scopeContent
+    type: text
+    required: false
+    label: { sv: "Innehållsbeskrivning", en: "Scope and content" }
+
+  - name: appraisal
+    type: text
+    required: false
+    label: { sv: "Gallring och bevarande", en: "Appraisal, destruction and scheduling" }
+
+  - name: arrangement
+    type: text
+    required: false
+    label: { sv: "Ordning och klassifikation", en: "System of arrangement" }
+
+# ─────────────────────────────────────────────
+# Tillgänglighet och användning
+# ─────────────────────────────────────────────
+
+  - name: accessrestrict
+    type: text
+    required: false
+    label: { sv: "Tillgångsvillkor", en: "Conditions governing access" }
+
+  - name: userestrict
+    type: text
+    required: false
+    label: { sv: "Reproduktionsvillkor", en: "Conditions governing reproduction" }
+
+  - name: language
+    type: string
+    required: false
+    label: { sv: "Materialets språk", en: "Language of material" }
+
+  - name: phystech
+    type: text
+    required: false
+    label: { sv: "Fysiska egenskaper och tekniska krav", en: "Physical characteristics and technical requirements" }
+
+# ─────────────────────────────────────────────
+# Kompletterande handlingar
+# ─────────────────────────────────────────────
+
+  - name: originalsloc
+    type: text
+    required: false
+    label: { sv: "Originalets placering", en: "Existence and location of originals" }
+
+  - name: altformavail
+    type: text
+    required: false
+    label: { sv: "Kopiors placering", en: "Existence and location of copies" }
+
+  - name: relatedmaterial
+    type: text
+    required: false
+    label: { sv: "Relaterade enheter", en: "Related units of description" }
+
+# ─────────────────────────────────────────────
+# Anteckningar och beskrivningskontroll
+# ─────────────────────────────────────────────
+
+  - name: notes
+    type: text
+    required: false
+    label: { sv: "Anmärkningar", en: "Notes" }
+
+  - name: rules
+    type: string
+    required: false
+    label: { sv: "Regler och konventioner", en: "Rules or conventions" }
+
+  - name: statusDescription
+    type: enumeration
+    required: false
+    values: ["draft", "finalized", "revised"]
+    label: { sv: "Beskrivningsstatus", en: "Status of description" }
+
+  - name: archivistNotes
+    type: text
+    required: false
+    label: { sv: "Arkivarieanmärkningar", en: "Archivist notes" }

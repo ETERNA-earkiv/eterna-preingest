@@ -1,5 +1,13 @@
-# Schema för ärendehantering — svenska kommuner/myndigheter
-# Baserat på klassisk ERMS-modell (ärende + handlingar)
+# Exempelschema: Ärendehantering
+#
+# Passar: kommuner, myndigheter och bolag med ärendebaserade processer.
+#
+# Metadata-typ: "arende" (record) + "handling" (item)
+# ETERNA-overlay genereras automatiskt vid uppstart och installeras i
+# ETERNAs config-katalog för att aktivera metadata-typen i systemet.
+#
+# record  = ett ärende (t.ex. ett bygglov eller ett tillsynsärende)
+# item    = en handling som hör till ärendet (t.ex. en ansökan eller ett beslut)
 
 record:
   metadataType: "arende"
@@ -13,6 +21,9 @@ item:
     sv: "Handling"
     en: "Document"
 
+# ─────────────────────────────────────────────
+# Ärendefält (record-nivå)
+# ─────────────────────────────────────────────
 recordFields:
   - name: arendenummer
     type: string
@@ -29,6 +40,11 @@ recordFields:
     required: true
     label: { sv: "Klassifikationskod", en: "Classification Code" }
 
+  - name: verksamhetsomrade
+    type: string
+    required: false
+    label: { sv: "Verksamhetsområde", en: "Business Area" }
+
   - name: handlaggare
     type: string
     required: false
@@ -37,7 +53,7 @@ recordFields:
   - name: motpart
     type: string
     required: false
-    label: { sv: "Motpart/Sökande", en: "Counterpart" }
+    label: { sv: "Motpart/Sökande", en: "Counterpart/Applicant" }
 
   - name: organisationsnummer
     type: string
@@ -47,7 +63,7 @@ recordFields:
   - name: verksamhetssystem
     type: string
     required: false
-    label: { sv: "Verksamhetssystem", en: "Business System" }
+    label: { sv: "Verksamhetssystem", en: "Source System" }
 
   - name: oppningsdatum
     type: date
@@ -64,6 +80,12 @@ recordFields:
     required: true
     label: { sv: "Arkiveringsdatum", en: "Archiving Date" }
 
+  - name: status
+    type: enumeration
+    required: false
+    values: ["Öppen", "Avslutad", "Återkallad"]
+    label: { sv: "Status", en: "Status" }
+
   - name: sekretess
     type: enumeration
     required: false
@@ -75,6 +97,9 @@ recordFields:
     required: false
     label: { sv: "Anteckning", en: "Note" }
 
+# ─────────────────────────────────────────────
+# Handlingsfält (item-nivå)
+# ─────────────────────────────────────────────
 itemFields:
   - name: handlingsnummer
     type: string
