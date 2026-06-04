@@ -11,8 +11,8 @@ public record EternaClientProperties(
     String url,
     @DefaultValue("admin") String username,
     @DefaultValue("eterna") String password,
-    // Konfigurerbart API-prefix — löser /v1 vs /api/v1 vs /controller/v1
-    @DefaultValue("/api/v1") String apiPath,
+    // Konfigurerbart API-prefix — löser /api/v2 vs /controller/v1 beroende på ETERNA-version
+    @DefaultValue("/api/v2") String apiPath,
     @DefaultValue("60s") Duration readTimeout,
     @DefaultValue("60s") Duration writeTimeout,
     @DefaultValue("false") boolean verifySsl,

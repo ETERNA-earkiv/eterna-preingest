@@ -20,7 +20,7 @@ eterna:
   url: ${ETERNA_URL:http://localhost:8080}
   username: ${ETERNA_USERNAME:admin}
   password: ${ETERNA_PASSWORD:eterna}
-  api-path: ${ETERNA_API_PATH:/api/v1}
+  api-path: ${ETERNA_API_PATH:/api/v2}
   read-timeout: 60s
   write-timeout: 120s
   verify-ssl: false

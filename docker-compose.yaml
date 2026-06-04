@@ -15,12 +15,13 @@ services:
       # Genererade overlay-filer — kopiera till ETERNA efter start
       - eterna-overlay:/config/overlay
     environment:
-      ETERNA_URL: ${ETERNA_URL:-http://eterna:8080}
-      ETERNA_USERNAME: ${ETERNA_USERNAME:-admin}
-      ETERNA_PASSWORD: ${ETERNA_PASSWORD:-eterna}
-      ETERNA_PARENT_ID: ${ETERNA_PARENT_ID}
-      ETERNA_API_PATH: ${ETERNA_API_PATH:-/api/v1}
+#      ETERNA_URL: ${ETERNA_URL:-http://eterna:8080}
+#      ETERNA_USERNAME: ${ETERNA_USERNAME:-admin}
+#      ETERNA_PASSWORD: ${ETERNA_PASSWORD:-eterna}
+#      ETERNA_PARENT_ID: ${ETERNA_PARENT_ID}
+#      ETERNA_API_PATH: ${ETERNA_API_PATH:-/api/v2}
       INGEST_AUTO_DEPLOY_OVERLAY: "true"
+    env_file: ".env"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
