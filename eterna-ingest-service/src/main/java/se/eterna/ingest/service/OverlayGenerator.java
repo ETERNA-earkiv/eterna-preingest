@@ -51,22 +51,36 @@ public class OverlayGenerator {
         ensureDir(overlayDir.resolve("crosswalks/dissemination/html"));
         ensureDir(overlayDir.resolve("templates"));
 
-        writeFile(overlayDir.resolve("schemas/" + mt + ".xsd"), buildXsd(mt, fields));
+        writeFile(overlayDir.resolve("schemas/" + mt + ".xsd"), buildXsd(type, fields));
         writeFile(overlayDir.resolve("crosswalks/ingest/" + mt + ".xslt"), buildIngestXslt(mt, fields));
         writeFile(overlayDir.resolve("crosswalks/dissemination/html/" + mt + ".xslt"), buildHtmlXslt(mt, type, fields));
         writeFile(overlayDir.resolve("templates/" + mt + ".xml.hbs"), buildHandlebars(mt, fields));
     }
 
-    private String buildXsd(String metadataType, List<FieldDefinition> fields) {
+    private String buildXsd(SchemaDefinition.TypeConfig typeConfig, List<FieldDefinition> fields) {
+        var metadataType = typeConfig != null ? typeConfig.metadataType() : "record";
+        var rootElement = (typeConfig != null && typeConfig.rootElement() != null) ? typeConfig.rootElement() : metadataType;
+        var wrapperElement = (typeConfig != null && typeConfig.rootElement() != null && typeConfig.wrapperElement() != null) ? typeConfig.wrapperElement() : null;
+        var namespace = typeConfig != null ? typeConfig.namespace() : null;
         var sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n");
-        sb.append("           xmlns=\"urn:eterna:ingest:metadata:1.0\"\n");
-        sb.append("           targetNamespace=\"urn:eterna:ingest:metadata:1.0\"\n");
+        if (namespace != null) {
+            sb.append("           xmlns=\"").append(namespace).append("\"\n");
+            sb.append("           targetNamespace=\"").append(namespace).append("\"\n");
+        } else {
+            sb.append("           xmlns=\"urn:eterna:ingest:metadata:1.0\"\n");
+            sb.append("           targetNamespace=\"urn:eterna:ingest:metadata:1.0\"\n");
+        }
         sb.append("           elementFormDefault=\"qualified\">\n\n");
-        sb.append("  <xs:element name=\"").append(metadataType).append("\">\n");
+        sb.append("  <xs:element name=\"").append(rootElement).append("\">\n");
         sb.append("    <xs:complexType>\n");
         sb.append("      <xs:sequence>\n");
+        if (wrapperElement != null) {
+            sb.append("  <xs:element name=\"").append(wrapperElement).append("\">\n");
+            sb.append("    <xs:complexType>\n");
+            sb.append("      <xs:sequence>\n");
+        }
         if (fields != null) {
             for (FieldDefinition f : fields) {
                 String xsType = toXsType(f.type());
@@ -76,6 +90,11 @@ public class OverlayGenerator {
                   .append(" minOccurs=\"").append(minOccurs).append("\"")
                   .append(" maxOccurs=\"1\"/>\n");
             }
+        }
+        if (wrapperElement != null) {
+            sb.append("      </xs:sequence>\n");
+            sb.append("    </xs:complexType>\n");
+            sb.append("  </xs:element>\n");
         }
         sb.append("      </xs:sequence>\n");
         sb.append("    </xs:complexType>\n");
