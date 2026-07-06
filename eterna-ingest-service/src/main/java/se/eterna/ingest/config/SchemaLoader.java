@@ -33,10 +33,13 @@ public class SchemaLoader {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
             .findAndRegisterModules();
         schema = mapper.readValue(path.toFile(), SchemaDefinition.class);
-        log.info("Schema laddat: metadataType={}, recordFields={}, itemFields={}",
+        log.info("Schema laddat: metadataType={}, recordFields={}, itemFields={}, rootElement={}, wrapperElement={}, namespace={}",
             schema.record() != null ? schema.record().metadataType() : "?",
             schema.recordFields() != null ? schema.recordFields().size() : 0,
-            schema.itemFields() != null ? schema.itemFields().size() : 0);
+            schema.itemFields() != null ? schema.itemFields().size() : 0,
+            schema.record() != null ? schema.record().rootElement() : "?",
+            schema.record() != null ? schema.record().wrapperElement() : "?",
+            schema.record() != null ? schema.record().namespace() : "?");
     }
 
     public SchemaDefinition getSchema() {

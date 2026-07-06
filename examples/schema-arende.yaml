@@ -11,6 +11,12 @@
 
 record:
   metadataType: "arende"
+  # rootElement är optional och ersätter metadataType i den genererade xml:en. metadataType används då bara till filnamnet
+  rootElement: "rotelement"
+  # wrapperElement används enbart om rootElement finns och hamnar ett steg under i xml-strukturen, om man behöver ett till wrapperElement mellan datat och rootElement
+  wrapperElement: "wrapperelement"
+  # namespace sätts istället för default namespacet
+  namespace: "http://din-domain.se/arende"
   label:
     sv: "Ärende"
     en: "Case"

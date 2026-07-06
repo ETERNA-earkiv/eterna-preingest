@@ -11,7 +11,7 @@ public record SchemaDefinition(
     List<FieldDefinition> recordFields,
     List<FieldDefinition> itemFields
 ) {
-    public record TypeConfig(String metadataType, Label label) {}
+    public record TypeConfig(String metadataType, Label label, String rootElement, String wrapperElement, String namespace) {}
 
     public record Label(String sv, String en) {
         public String forLocale(String lang) {
