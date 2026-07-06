@@ -20,7 +20,7 @@ public record IngestOptions(
     Duration retryDelay
 ) {
     private static final String DEFAULT_PLUGIN =
-        "org.roda.core.plugins.base.ingest.v2.ConfigurableIngestPlugin";
+        "org.roda.core.plugins.base.ingest.EARKSIP2ToAIPPlugin";
 
     public static IngestOptions defaults(String parentAipId) {
         return new IngestOptions(
