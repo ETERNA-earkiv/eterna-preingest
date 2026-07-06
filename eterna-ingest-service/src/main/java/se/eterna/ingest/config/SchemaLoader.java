@@ -16,12 +16,12 @@ public class SchemaLoader {
 
     private static final Logger log = LoggerFactory.getLogger(SchemaLoader.class);
 
-    @Value("${ingest.schema-path:/config/schema.yaml}")
+    //@Value("${ingest.schema-path:/config/schema.yaml}")
     private String schemaPath;
 
     private SchemaDefinition schema;
 
-    @PostConstruct
+    //@PostConstruct
     public void load() throws Exception {
         Path path = Path.of(schemaPath);
         if (!Files.exists(path)) {

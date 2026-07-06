@@ -28,7 +28,7 @@ public class OverlayStartupConfig {
         this.overlayGenerator = overlayGenerator;
     }
 
-    @PostConstruct
+    //@PostConstruct
     public void generateOverlay() throws Exception {
         Path dir = Path.of(overlayDir);
         Files.createDirectories(dir);
