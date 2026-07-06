@@ -73,9 +73,12 @@ public class RecordService {
         Path workDir = Files.createTempDirectory(Path.of(workDirBase), "sip-");
         try {
             // Generera metadata-XML
-            String metadataType = typeConfig != null ? typeConfig.metadataType() : "record";
+            var metadataType = typeConfig != null ? typeConfig.metadataType() : "record";
+            var rootElement = (typeConfig != null && typeConfig.rootElement() != null) ? typeConfig.rootElement() : metadataType;
+            var wrapperElement = (typeConfig != null && typeConfig.rootElement() != null && typeConfig.wrapperElement() != null) ? typeConfig.wrapperElement() : null;
+            var namespace = typeConfig != null ? typeConfig.namespace() : null;
             Path metadataFile = xmlGenerator.generate(
-                metadataType, request.fields(), fieldDefs, workDir
+                rootElement, wrapperElement, namespace, request.fields(), fieldDefs, workDir, metadataType
             );
 
             // Förbered bifogade filer

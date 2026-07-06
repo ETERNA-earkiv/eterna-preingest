@@ -19,26 +19,38 @@ public class MetadataXmlGenerator {
 
     public Path generate(
         String rootElement,
+        String wrapperElement,
+        String namespace,
         Map<String, String> fields,
         List<SchemaDefinition.FieldDefinition> fieldDefs,
-        Path outputDir
+        Path outputDir,
+        String filename
     ) throws IOException {
-        String xml = buildXml(rootElement, fields, fieldDefs);
-        Path file = outputDir.resolve(rootElement + ".xml");
+        String xml = buildXml(rootElement, wrapperElement, namespace, fields, fieldDefs);
+        Path file = outputDir.resolve(filename + ".xml");
         Files.writeString(file, xml, StandardCharsets.UTF_8);
         return file;
     }
 
     private String buildXml(
         String rootElement,
+        String wrapperElement,
+        String namespace,
         Map<String, String> fields,
         List<SchemaDefinition.FieldDefinition> fieldDefs
     ) {
         var sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        sb.append("<").append(rootElement).append(
-            " xmlns=\"urn:eterna:ingest:metadata:1.0\">\n"
-        );
+        sb.append("<").append(rootElement);
+        if (namespace != null) {
+            sb.append(" xmlns=\"").append(namespace).append("\">\n");
+        } else {
+            sb.append(" xmlns=\"urn:eterna:ingest:metadata:1.0\">\n");
+        }
+
+        if (wrapperElement != null) {
+            sb.append("<").append(wrapperElement).append(">\n");
+        }
 
         for (SchemaDefinition.FieldDefinition def : fieldDefs) {
             String value = fields.get(def.name());
@@ -47,6 +59,10 @@ public class MetadataXmlGenerator {
                   .append(escapeXml(value))
                   .append("</").append(def.name()).append(">\n");
             }
+        }
+
+        if (wrapperElement != null) {
+            sb.append("</").append(wrapperElement).append(">\n");
         }
 
         sb.append("</").append(rootElement).append(">\n");

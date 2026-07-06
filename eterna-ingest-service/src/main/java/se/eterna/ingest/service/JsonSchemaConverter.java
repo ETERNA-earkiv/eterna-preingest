@@ -20,11 +20,21 @@ public class JsonSchemaConverter {
         Map<String, Object> result = new HashMap<>();
 
         if (schema.record() != null) {
-            result.put("record", Map.of(
-                "metadataType", schema.record().metadataType(),
-                "label", labelMap(schema.record().label()),
-                "schema", buildJsonSchema(schema.recordFields())
-            ));
+            Map<String, Object> recordMap = new HashMap<>();
+            recordMap.put("metadataType", schema.record().metadataType());
+            if (schema.record().rootElement() != null) {
+                recordMap.put("rootElement", schema.record().rootElement());
+            }
+            if (schema.record().wrapperElement() != null) {
+                recordMap.put("wrapperElement", schema.record().wrapperElement());
+            }
+            if (schema.record().namespace() != null) {
+                recordMap.put("namespace", schema.record().namespace());
+            }
+            recordMap.put("label", labelMap(schema.record().label()));
+            recordMap.put("schema", buildJsonSchema(schema.recordFields()));
+
+            result.put("record", recordMap);
         }
 
         if (schema.item() != null) {
