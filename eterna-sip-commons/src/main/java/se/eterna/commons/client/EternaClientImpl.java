@@ -91,7 +91,7 @@ public class EternaClientImpl implements EternaClient {
 
         Map<String, Object> jobBody = new HashMap<>();
         jobBody.put("name", "Ingest via eterna-sip-commons");
-        jobBody.put("plugin", options.sipToAipPlugin());
+        jobBody.put("plugin", "org.roda.core.plugins.base.ingest.v2.ConfigurableIngestPlugin");
         jobBody.put("sourceObjects", sourceObjects);
         jobBody.put("sourceObjectsClass", "org.roda.core.data.v2.ip.TransferredResource");
         jobBody.put("priority", "MEDIUM");
