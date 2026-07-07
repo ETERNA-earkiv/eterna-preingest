@@ -4,6 +4,7 @@ import se.eterna.commons.exception.SipBuildException;
 import se.eterna.commons.sip.SipPackager;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Bygger ett E-ARK SIP ZIP från ett {@link ArchivableRecord}.
@@ -28,8 +29,7 @@ public class RecordSipBuilder {
         try {
             return packager.buildZip(
                 record.getId(),
-                record.getMetadataFile(),
-                record.getMetadataType(),
+                Map.of(record.getMetadataType(), record.getMetadataFile()),
                 record.getFiles(),
                 workDir
             );

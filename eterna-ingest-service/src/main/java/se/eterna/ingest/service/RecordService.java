@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -86,7 +87,7 @@ public class RecordService {
 
             // Bygg SIP ZIP
             String sipId = UUID.randomUUID().toString();
-            Path zipPath = sipPackager.buildZip(sipId, metadataFile, metadataType, sipFiles, workDir);
+            Path zipPath = sipPackager.buildZip(sipId, Map.of(metadataType, metadataFile), sipFiles, workDir);
 
             // Ladda upp till ETERNA
             {

@@ -21,11 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.*;
 
 @Service
 public class RecordV2Service {
@@ -75,7 +71,7 @@ public class RecordV2Service {
         Path workDir = Files.createTempDirectory(Path.of(workDirBase), "sip-");
         try {
 
-            var metadataFilePaths = new ArrayList<Path>();
+            var metadataMap = new HashMap<String, Path>();
 
             request.fieldsMap().forEach((requestMetadataType, requestFields) -> {
                 Optional<SchemaV2Definition.TypeConfig> typeConfigOpt = schema.recordsList().stream()
@@ -92,7 +88,7 @@ public class RecordV2Service {
                     var wrapperElement = typeConfig.rootElement() != null && typeConfig.wrapperElement() != null ? typeConfig.wrapperElement() : null;
                     var namespace = typeConfig.namespace();
                     try {
-                        metadataFilePaths.add(xmlGenerator.generate(
+                        metadataMap.put(metadataType, xmlGenerator.generate(
                                 rootElement, wrapperElement, namespace, requestFields, typeConfig.fields(), workDir, metadataType
                         ));
                     } catch (IOException e) {
@@ -106,7 +102,7 @@ public class RecordV2Service {
 
             // Bygg SIP ZIP
             String sipId = UUID.randomUUID().toString();
-            Path zipPath = sipPackager.buildZip(sipId, metadataFilePaths, metadataType, sipFiles, workDir);
+            Path zipPath = sipPackager.buildZip(sipId, metadataMap, sipFiles, workDir);
 
             // Ladda upp till ETERNA
             {
