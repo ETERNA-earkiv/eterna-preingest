@@ -1,5 +1,7 @@
 package se.eterna.ingest.service;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.xml.bind.JAXBException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -33,22 +36,28 @@ public class RecordService {
     private final SchemaLoader schemaLoader;
     private final SchemaValidator validator;
     private final MetadataXmlGenerator xmlGenerator;
+    private final Ead3XmlGenerator ead3XmlGenerator;
+    private final Ead3Service ead3Service;
     private final SipPackager sipPackager;
 
     @Value("${ingest.work-dir:/tmp/eterna-ingest}")
     private String workDirBase;
 
     public RecordService(
-        EternaClient eternaClient,
-        SchemaLoader schemaLoader,
-        SchemaValidator validator,
-        MetadataXmlGenerator xmlGenerator,
-        SipPackager sipPackager
+            EternaClient eternaClient,
+            SchemaLoader schemaLoader,
+            SchemaValidator validator,
+            MetadataXmlGenerator xmlGenerator,
+            Ead3XmlGenerator ead3XmlGenerator,
+            Ead3Service ead3Service,
+            SipPackager sipPackager
     ) {
         this.eternaClient = eternaClient;
         this.schemaLoader = schemaLoader;
         this.validator = validator;
         this.xmlGenerator = xmlGenerator;
+        this.ead3XmlGenerator = ead3XmlGenerator;
+        this.ead3Service = ead3Service;
         this.sipPackager = sipPackager;
     }
 
@@ -77,9 +86,15 @@ public class RecordService {
             var rootElement = (typeConfig != null && typeConfig.rootElement() != null) ? typeConfig.rootElement() : metadataType;
             var wrapperElement = (typeConfig != null && typeConfig.rootElement() != null && typeConfig.wrapperElement() != null) ? typeConfig.wrapperElement() : null;
             var namespace = typeConfig != null ? typeConfig.namespace() : null;
-            Path metadataFile = xmlGenerator.generate(
-                rootElement, wrapperElement, namespace, request.fields(), fieldDefs, workDir, metadataType
-            );
+            Path metadataFile;
+            if (metadataType.startsWith("ead")) {
+                validateEad3Fields(fieldDefs);
+                metadataFile = generateEad3Xml(request.fields(), workDir);
+            } else {
+                metadataFile = xmlGenerator.generate(
+                        rootElement, wrapperElement, namespace, request.fields(), fieldDefs, workDir, metadataType
+                );
+            }
 
             // Förbered bifogade filer
             List<SipFile> sipFiles = buildSipFiles(request);
@@ -105,6 +120,34 @@ public class RecordService {
             // Städa upp temporära filer
             deleteDir(workDir);
         }
+    }
+
+    private void validateEad3Fields(List<SchemaDefinition.FieldDefinition> fieldDefs) {
+        // TODO: validate
+    }
+
+    private Path generateEad3Xml(@NotNull Map<String, String> fields, Path workDir) throws JAXBException {
+        var title = fields.get("title");
+        var recordId = UUID.randomUUID().toString();
+        var agencyName = fields.get("agencyname");
+        var archivalDescriptionParameters = new Ead3Service.ArchivalDescriptionParameters(
+                fields.get("level"),
+                fields.get("refname"),
+                fields.get("refid"),
+                fields.get("relatedmaterial"),
+                fields.get("securityclass"),
+                fields.get("classificationstructure"),
+                fields.get("classificationstructureversion"),
+                fields.get("structuralunit"),
+                fields.get("structuralunitdenotation"),
+                fields.get("processinfo")
+        );
+        var ead3 = ead3Service.createEad3(title, recordId, agencyName, archivalDescriptionParameters);
+        Path xmlFilePath = workDir.resolve("ead3.xml");
+
+        ead3XmlGenerator.generate(ead3, xmlFilePath);
+
+        return xmlFilePath;
     }
 
     public RecordStatusResponse getStatus(String jobId) {
