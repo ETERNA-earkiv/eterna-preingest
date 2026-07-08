@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Genererar ETERNA config overlay-filer från schema-definitionen.
@@ -161,10 +163,17 @@ public class OverlayGenerator {
         var enSb = new StringBuilder();
         var svSb = new StringBuilder();
 
-        for (var typeAndFields : List.of(
-            java.util.Map.entry(schema.record(), schema.recordFields()),
-            java.util.Map.entry(schema.item(), schema.itemFields())
-        )) {
+        var list = new ArrayList<Map.Entry<SchemaDefinition.TypeConfig, List<FieldDefinition>>>();
+
+        if (schema.record() != null) {
+            list.add(java.util.Map.entry(schema.record(), schema.recordFields()));
+        }
+
+        if (schema.item() != null) {
+            list.add(java.util.Map.entry(schema.item(), schema.itemFields()));
+        }
+
+        for (var typeAndFields : list) {
             var type = typeAndFields.getKey();
             var fields = typeAndFields.getValue();
             if (type == null || fields == null) continue;
