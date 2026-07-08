@@ -166,11 +166,11 @@ public class OverlayGenerator {
         var list = new ArrayList<Map.Entry<SchemaDefinition.TypeConfig, List<FieldDefinition>>>();
 
         if (schema.record() != null) {
-            list.add(java.util.Map.entry(schema.record(), schema.recordFields()));
+            list.add(Map.entry(schema.record(), schema.recordFields()));
         }
 
         if (schema.item() != null) {
-            list.add(java.util.Map.entry(schema.item(), schema.itemFields()));
+            list.add(Map.entry(schema.item(), schema.itemFields()));
         }
 
         for (var typeAndFields : list) {
