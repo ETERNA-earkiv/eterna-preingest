@@ -46,7 +46,7 @@ public class JsonSchemaV2Converter {
         return result;
     }
 
-    private Map<String, Object> buildJsonSchema(List<SchemaV2Definition.FieldDefinition> fields) {
+    private Map<String, Object> buildJsonSchema(List<SchemaDefinition.FieldDefinition> fields) {
         Map<String, Object> schema = new HashMap<>();
         schema.put("type", "object");
         schema.put("$schema", "http://json-schema.org/draft-07/schema#");
@@ -55,7 +55,7 @@ public class JsonSchemaV2Converter {
         List<String> required = new ArrayList<>();
 
         if (fields != null) {
-            for (SchemaV2Definition.FieldDefinition f : fields) {
+            for (SchemaDefinition.FieldDefinition f : fields) {
                 properties.put(f.name(), fieldSchema(f));
                 if (f.required()) required.add(f.name());
             }
@@ -66,7 +66,7 @@ public class JsonSchemaV2Converter {
         return schema;
     }
 
-    private Map<String, Object> fieldSchema(SchemaV2Definition.FieldDefinition f) {
+    private Map<String, Object> fieldSchema(SchemaDefinition.FieldDefinition f) {
         Map<String, Object> prop = new HashMap<>();
 
         switch (f.type()) {

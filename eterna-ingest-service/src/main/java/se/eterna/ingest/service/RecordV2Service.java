@@ -45,7 +45,9 @@ public class RecordV2Service {
             EternaClient eternaClient,
             SchemaV2Loader schemaLoader,
             SchemaValidator validator,
-            MetadataXmlV2Generator xmlGenerator, Ead3XmlGenerator ead3XmlGenerator, Ead3Service ead3Service,
+            MetadataXmlV2Generator xmlGenerator,
+            Ead3XmlGenerator ead3XmlGenerator,
+            Ead3Service ead3Service,
             SipPackager sipPackager
     ) {
         this.eternaClient = eternaClient;
@@ -60,20 +62,6 @@ public class RecordV2Service {
     public SubmitRecordResponse submit(SubmitRecordV2Request request) throws Exception {
         SchemaV2Definition schema = schemaLoader.getSchema();
 
-//        List<SchemaDefinition.FieldDefinition> fieldDefs = isItem
-//            ? schema.itemFields() : schema.recordFields();
-//        SchemaDefinition.TypeConfig typeConfig = isItem ? schema.item() : schema.record();
-
-        // Validera fält mot schema
-//        List<String> errors = validator.validate(request.fields(), fieldDefs,
-//            typeConfig != null ? typeConfig.metadataType() : "record");
-//        List<String> realErrors = errors.stream()
-//            .filter(e -> !e.contains("okänt fält ignoreras"))
-//            .toList();
-//        if (!realErrors.isEmpty()) {
-//            throw new ValidationException(realErrors);
-//        }
-
         Path workDir = Files.createTempDirectory(Path.of(workDirBase), "sip-");
         try {
 
@@ -87,6 +75,8 @@ public class RecordV2Service {
 
                 if (typeConfigOpt.isPresent()) {
                     var typeConfig = typeConfigOpt.get();
+
+                    validateFields(typeConfig, requestFields);
 
                     // Generera metadata-XML
                     var metadataType = typeConfig.metadataType();
@@ -130,6 +120,16 @@ public class RecordV2Service {
         } finally {
             // Städa upp temporära filer
             deleteDir(workDir);
+        }
+    }
+
+    private void validateFields(SchemaV2Definition.TypeConfig typeConfig, Map<String, String> requestFields) {
+        List<String> errors = validator.validate(requestFields, typeConfig.fields(), typeConfig.metadataType());
+        List<String> realErrors = errors.stream()
+                .filter(e -> !e.contains("okänt fält ignoreras"))
+                .toList();
+        if (!realErrors.isEmpty()) {
+            throw new ValidationException(realErrors);
         }
     }
 

@@ -23,7 +23,7 @@ public class MetadataXmlV2Generator {
         String wrapperElement,
         String namespace,
         Map<String, String> fields,
-        List<SchemaV2Definition.FieldDefinition> fieldDefs,
+        List<SchemaDefinition.FieldDefinition> fieldDefs,
         Path outputDir,
         String filename
     ) throws IOException {
@@ -38,7 +38,7 @@ public class MetadataXmlV2Generator {
         String wrapperElement,
         String namespace,
         Map<String, String> fields,
-        List<SchemaV2Definition.FieldDefinition> fieldDefs
+        List<SchemaDefinition.FieldDefinition> fieldDefs
     ) {
         var sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -53,7 +53,7 @@ public class MetadataXmlV2Generator {
             sb.append("<").append(wrapperElement).append(">\n");
         }
 
-        for (SchemaV2Definition.FieldDefinition def : fieldDefs) {
+        for (SchemaDefinition.FieldDefinition def : fieldDefs) {
             String value = fields.get(def.name());
             if (value != null && !value.isBlank()) {
                 sb.append("  <").append(def.name()).append(">")

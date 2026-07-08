@@ -21,29 +21,13 @@ public record SchemaV2Definition(
             String rootElement,
             String wrapperElement,
             String namespace,
-            List<FieldDefinition> fields
+            List<SchemaDefinition.FieldDefinition> fields
     ) {}
 
     public record Label(String sv, String en) {
         public String forLocale(String lang) {
             return "sv".equals(lang) ? sv : en;
         }
-    }
-
-    public record FieldDefinition(
-        String name,
-        FieldType type,
-        boolean required,
-        Label label,
-        List<String> values  // För enum-typ
-    ) {
-        public FieldDefinition {
-            if (values == null) values = List.of();
-        }
-    }
-
-    public enum FieldType {
-        string, text, date, datetime, integer, decimal, bool, email, url, enumeration
     }
 
 }
