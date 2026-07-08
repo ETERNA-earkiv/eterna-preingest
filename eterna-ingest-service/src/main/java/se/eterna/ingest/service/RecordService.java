@@ -87,7 +87,7 @@ public class RecordService {
             var wrapperElement = (typeConfig != null && typeConfig.rootElement() != null && typeConfig.wrapperElement() != null) ? typeConfig.wrapperElement() : null;
             var namespace = typeConfig != null ? typeConfig.namespace() : null;
             Path metadataFile;
-            if (metadataType.startsWith("ead")) {
+            if (metadataType.equals("ead_3")) {
                 validateEad3Fields(fieldDefs);
                 metadataFile = generateEad3Xml(request.fields(), workDir);
             } else {
