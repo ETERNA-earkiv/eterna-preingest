@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.xml.sax.SAXException;
 import se.eterna.commons.client.EternaClient;
 import se.eterna.commons.client.IngestJob;
 import se.eterna.commons.client.TransferResource;
@@ -88,7 +89,6 @@ public class RecordService {
             var namespace = typeConfig != null ? typeConfig.namespace() : null;
             Path metadataFile;
             if (metadataType.equals("ead_3")) {
-                validateEad3Fields(fieldDefs);
                 metadataFile = generateEad3Xml(request.fields(), workDir);
             } else {
                 metadataFile = xmlGenerator.generate(
@@ -122,11 +122,7 @@ public class RecordService {
         }
     }
 
-    private void validateEad3Fields(List<SchemaDefinition.FieldDefinition> fieldDefs) {
-        // TODO: validate
-    }
-
-    private Path generateEad3Xml(@NotNull Map<String, String> fields, Path workDir) throws JAXBException {
+    private Path generateEad3Xml(@NotNull Map<String, String> fields, Path workDir) throws JAXBException, SAXException {
         var title = fields.get("title");
         var recordId = UUID.randomUUID().toString();
         var agencyName = fields.get("agencyname");
