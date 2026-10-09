@@ -9,11 +9,9 @@ import java.util.Map;
 
 public record SubmitRecordRequest(
     @NotBlank String parentId,
-    @NotNull RecordType recordType,
-    @NotNull Map<String, String> fields,
+    @NotNull Map<String, Map<String, String>> fieldsMap,
     List<FileAttachment> files
 ) {
-    public enum RecordType { RECORD, ITEM }
 
     public record FileAttachment(
         @NotBlank String filename,

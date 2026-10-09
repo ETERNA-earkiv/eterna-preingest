@@ -8,8 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,9 +36,14 @@ public class SchemaLoader {
                 "\nMonteras via: -v /din/schema.yaml:" + schemaPath
             );
         }
+        Yaml snakeYaml = new Yaml();
+        Object rawTree;
+        try (InputStream in = Files.newInputStream(path)) {
+            rawTree = snakeYaml.load(in);
+        }
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
-            .findAndRegisterModules();
-        schema = mapper.readValue(path.toFile(), SchemaDefinition.class);
+                .findAndRegisterModules();
+        schema = mapper.convertValue(rawTree, SchemaDefinition.class);
         logSchemaDefinitions(schema);
     }
 

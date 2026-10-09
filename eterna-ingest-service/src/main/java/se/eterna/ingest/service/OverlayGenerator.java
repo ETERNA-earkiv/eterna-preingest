@@ -10,12 +10,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 
 /**
  * Genererar ETERNA config overlay-filer från schema-definitionen.
  * Körs vid startup om ingest.auto-deploy-overlay=true.
- *
  * Genererade filer:
  *   schemas/{type}.xsd
  *   crosswalks/ingest/{type}.xslt
@@ -30,14 +30,21 @@ public class OverlayGenerator {
     private static final Logger log = LoggerFactory.getLogger(OverlayGenerator.class);
 
     public void generate(SchemaDefinition schema, Path overlayDir) throws IOException {
-        if (schema.record() != null) {
-            generateForType(schema.record(), schema.recordFields(), overlayDir);
-        }
-        if (schema.item() != null) {
-            generateForType(schema.item(), schema.itemFields(), overlayDir);
+        var metadataTypes = new HashSet<String>();
+        for (var recordGroup: schema.recordsList()) {
+            for (var schemaRecord: recordGroup.records()) {
+                if (metadataTypeHasNotBeenHandled(metadataTypes, schemaRecord.metadataType())) {
+                    generateForType(schemaRecord, schemaRecord.fields(), overlayDir);
+                    metadataTypes.add(schemaRecord.metadataType());
+                }
+            }
         }
         generateI18n(schema, overlayDir);
         log.info("ETERNA config overlay genererat i: {}", overlayDir);
+    }
+
+    private boolean metadataTypeHasNotBeenHandled(HashSet<String> metadataTypes, String metadataType) {
+        return !metadataTypes.contains(metadataType);
     }
 
     private void generateForType(
@@ -160,22 +167,23 @@ public class OverlayGenerator {
         ensureDir(overlayDir.resolve("i18n"));
         var enSb = new StringBuilder();
         var svSb = new StringBuilder();
+        var metadataTypes = new HashSet<String>();
 
-        for (var typeAndFields : List.of(
-            java.util.Map.entry(schema.record(), schema.recordFields()),
-            java.util.Map.entry(schema.item(), schema.itemFields())
-        )) {
-            var type = typeAndFields.getKey();
-            var fields = typeAndFields.getValue();
-            if (type == null || fields == null) continue;
-            String mt = type.metadataType();
-            for (FieldDefinition f : fields) {
-                String enLabel = f.label() != null && f.label().en() != null ? f.label().en() : f.name();
-                String svLabel = f.label() != null && f.label().sv() != null ? f.label().sv() : f.name();
-                enSb.append("metadataField.").append(mt).append(".").append(f.name())
-                    .append("=").append(enLabel).append("\n");
-                svSb.append("metadataField.").append(mt).append(".").append(f.name())
-                    .append("=").append(svLabel).append("\n");
+        for (var recordGroup: schema.recordsList()) {
+            for (var schemaRecord: recordGroup.records()) {
+                String metadataType = schemaRecord.metadataType();
+                if (metadataTypeHasNotBeenHandled(metadataTypes, metadataType)) {
+                    if (schemaRecord.fields() == null) continue;
+                    for (FieldDefinition field : schemaRecord.fields()) {
+                        String enLabel = field.label() != null && field.label().en() != null ? field.label().en() : field.name();
+                        String svLabel = field.label() != null && field.label().sv() != null ? field.label().sv() : field.name();
+                        enSb.append("metadataField.").append(metadataType).append(".").append(field.name())
+                                .append("=").append(enLabel).append("\n");
+                        svSb.append("metadataField.").append(metadataType).append(".").append(field.name())
+                                .append("=").append(svLabel).append("\n");
+                    }
+                    metadataTypes.add(metadataType);
+                }
             }
         }
 

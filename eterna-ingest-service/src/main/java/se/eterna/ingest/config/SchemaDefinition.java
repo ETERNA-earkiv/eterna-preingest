@@ -1,15 +1,18 @@
 package se.eterna.ingest.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
 /**
  * Modell för schema.yaml — styr vilka fält som accepteras i API och UI.
  */
+@JsonIgnoreProperties({"_defs"})
 public record SchemaDefinition(
-        List<SchemaDefinition.RecordGroup> recordsList
+        List<RecordGroup> recordsList
 ) {
     public record RecordGroup(
-            List<SchemaDefinition.TypeConfig> records
+            List<TypeConfig> records
     ) {
     }
 
