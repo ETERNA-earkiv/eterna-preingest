@@ -9,6 +9,7 @@ import se.eterna.ingest.config.SchemaDefinition;
 import se.eterna.ingest.config.SchemaLoader;
 import se.eterna.ingest.service.JsonSchemaConverter;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,7 +27,7 @@ public class SchemaController {
 
     @GetMapping
     @Operation(summary = "Returnerar JSON Schema för poster och handlingar")
-    public Map<String, Object> getSchema() {
+    public List<List<Map<String, Object>>> getSchema() {
         SchemaDefinition schema = schemaLoader.getSchema();
         return jsonSchemaConverter.convert(schema);
     }

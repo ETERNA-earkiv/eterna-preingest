@@ -13,10 +13,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public class SipPackager {
 
@@ -31,8 +31,7 @@ public class SipPackager {
      */
     public Path buildZip(
         String sipId,
-        Path metadataFile,
-        String metadataType,
+        Map<String, Path> metadataMap,
         List<SipFile> files,
         Path workDir
     ) throws Exception {
@@ -40,11 +39,13 @@ public class SipPackager {
         sip.addCreatorSoftwareAgent(CREATOR_AGENT, CREATOR_VERSION);
 
         // Beskrivande metadata
-        MetadataType mdType = new MetadataType(MetadataType.MetadataTypeEnum.OTHER);
-        mdType.setOtherType(metadataType);
-        sip.addDescriptiveMetadata(new IPDescriptiveMetadata(
-            new IPFile(metadataFile), mdType, null
-        ));
+        for (Map.Entry<String, Path> metadataType : metadataMap.entrySet()) {
+            MetadataType mdType = new MetadataType(MetadataType.MetadataTypeEnum.OTHER);
+            mdType.setOtherType(metadataType.getKey());
+            sip.addDescriptiveMetadata(new IPDescriptiveMetadata(
+                    new IPFile(metadataType.getValue()), mdType, null
+            ));
+        }
 
         // Filer i representation
         if (!files.isEmpty()) {

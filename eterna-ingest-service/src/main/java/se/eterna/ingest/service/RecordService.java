@@ -23,10 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class RecordService {
@@ -64,44 +61,48 @@ public class RecordService {
 
     public SubmitRecordResponse submit(SubmitRecordRequest request) throws Exception {
         SchemaDefinition schema = schemaLoader.getSchema();
-        boolean isItem = request.recordType() == SubmitRecordRequest.RecordType.ITEM;
-
-        List<SchemaDefinition.FieldDefinition> fieldDefs = isItem
-            ? schema.itemFields() : schema.recordFields();
-        SchemaDefinition.TypeConfig typeConfig = isItem ? schema.item() : schema.record();
-
-        // Validera fält mot schema
-        List<String> errors = validator.validate(request.fields(), fieldDefs,
-            typeConfig != null ? typeConfig.metadataType() : "record");
-        List<String> realErrors = errors.stream()
-            .filter(e -> !e.contains("okänt fält ignoreras"))
-            .toList();
-        if (!realErrors.isEmpty()) {
-            throw new ValidationException(realErrors);
-        }
 
         Path workDir = Files.createTempDirectory(Path.of(workDirBase), "sip-");
         try {
-            // Generera metadata-XML
-            var metadataType = typeConfig != null ? typeConfig.metadataType() : "record";
-            var rootElement = (typeConfig != null && typeConfig.rootElement() != null) ? typeConfig.rootElement() : metadataType;
-            var wrapperElement = (typeConfig != null && typeConfig.rootElement() != null && typeConfig.wrapperElement() != null) ? typeConfig.wrapperElement() : null;
-            var namespace = typeConfig != null ? typeConfig.namespace() : null;
-            Path metadataFile;
-            if (metadataType.equals("ead_3")) {
-                metadataFile = generateEad3Xml(request.fields(), workDir);
-            } else {
-                metadataFile = xmlGenerator.generate(
-                        rootElement, wrapperElement, namespace, request.fields(), fieldDefs, workDir, metadataType
-                );
-            }
+
+            var metadataMap = new LinkedHashMap<String, Path>();
+
+            request.fieldsMap().forEach((requestMetadataType, requestFields) -> {
+                Optional<SchemaDefinition.TypeConfig> typeConfigOpt = schema.recordsList().stream()
+                        .flatMap(recordGroup -> recordGroup.records().stream())
+                        .filter(typeConfig -> requestMetadataType.equals(typeConfig.metadataType()))
+                        .findFirst();
+
+                if (typeConfigOpt.isPresent()) {
+                    var typeConfig = typeConfigOpt.get();
+
+                    validateFields(typeConfig, requestFields);
+
+                    // Generera metadata-XML
+                    var metadataType = typeConfig.metadataType();
+                    var rootElement = typeConfig.rootElement() != null ? typeConfig.rootElement() : metadataType;
+                    var wrapperElement = typeConfig.rootElement() != null && typeConfig.wrapperElement() != null ? typeConfig.wrapperElement() : null;
+                    var namespace = typeConfig.namespace();
+                    try {
+                        if (metadataType.equals("ead_3")) {
+                            metadataMap.put(metadataType, generateEad3Xml(requestFields, workDir));
+                        } else {
+                            metadataMap.put(metadataType, xmlGenerator.generate(
+                                    rootElement, wrapperElement, namespace, requestFields, typeConfig.fields(), workDir, metadataType
+                            ));
+                        }
+                    } catch (IOException | JAXBException | SAXException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
             // Förbered bifogade filer
             List<SipFile> sipFiles = buildSipFiles(request);
 
             // Bygg SIP ZIP
             String sipId = UUID.randomUUID().toString();
-            Path zipPath = sipPackager.buildZip(sipId, metadataFile, metadataType, sipFiles, workDir);
+            Path zipPath = sipPackager.buildZip(sipId, metadataMap, sipFiles, workDir);
 
             // Ladda upp till ETERNA
             {
@@ -110,8 +111,8 @@ public class RecordService {
 
                 // Starta ingest-jobb
                 IngestJob job = eternaClient.createJob(
-                    List.of(transfer.transferId()),
-                    IngestOptions.defaults(request.parentId())
+                        List.of(transfer.transferId()),
+                        IngestOptions.defaults(request.parentId())
                 );
                 log.info("Ingest-jobb startat: jobId={}", job.id());
                 return new SubmitRecordResponse(job.id());
@@ -119,6 +120,16 @@ public class RecordService {
         } finally {
             // Städa upp temporära filer
             deleteDir(workDir);
+        }
+    }
+
+    private void validateFields(SchemaDefinition.TypeConfig typeConfig, Map<String, String> requestFields) {
+        List<String> errors = validator.validate(requestFields, typeConfig.fields(), typeConfig.metadataType());
+        List<String> realErrors = errors.stream()
+                .filter(e -> !e.contains("okänt fält ignoreras"))
+                .toList();
+        if (!realErrors.isEmpty()) {
+            throw new ValidationException(realErrors);
         }
     }
 
