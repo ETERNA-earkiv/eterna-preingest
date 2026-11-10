@@ -11,20 +11,25 @@ export interface JsonSchema {
   required?: string[]
 }
 
-export interface TypeSchema {
+export interface TypeConfig {
+  rootElement: string;
+  namespace: string;
+  wrapperElement: string;
   metadataType: string
   label: { sv?: string; en?: string }
   schema: JsonSchema
 }
 
-export interface IngestSchema {
-  record?: TypeSchema
-  item?: TypeSchema
+export interface RecordGroup {
+  records: TypeConfig[];
+}
+
+export interface SchemaDefinition {
+  recordsList: RecordGroup[];
 }
 
 export interface SubmitRequest {
   parentId: string
-  recordType: 'RECORD' | 'ITEM'
   fields: Record<string, string>
   files?: Array<{ filename: string; base64Data: string }>
 }
@@ -41,10 +46,12 @@ export interface StatusResponse {
 }
 
 const BASE = '/api'
+// @ts-ignore
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-export async function fetchSchema(): Promise<IngestSchema> {
-  const res = await fetch(`${BASE}/schema`)
-  if (!res.ok) throw new Error('Kunde inte hämta schema')
+export async function fetchSchema(): Promise<SchemaDefinition> {
+  const res = await fetch(`${BASE}/schema`);
+  if (!res.ok) throw new Error('Kunde inte hämta schema');
   return res.json()
 }
 

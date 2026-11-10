@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { fetchSchema, IngestSchema } from '../api/ingestApi'
+import { fetchSchema, SchemaDefinition } from '../api/ingestApi'
 
 export function useSchema() {
-  const [schema, setSchema] = useState<IngestSchema | null>(null)
+  const [schema, setSchema] = useState<SchemaDefinition | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -13,5 +13,5 @@ export function useSchema() {
       .finally(() => setLoading(false))
   }, [])
 
-  return { schema, loading, error }
+  return { schemaDefinition: schema, loading, error }
 }
