@@ -101,7 +101,7 @@ public class RecordService {
 
             // Bygg SIP ZIP
             String sipId = UUID.randomUUID().toString();
-            Path zipPath = sipPackager.buildZip(sipId, metadataFile, metadataType, sipFiles, workDir);
+            Path zipPath = sipPackager.buildZip(sipId, Map.of(metadataType, metadataFile), sipFiles, workDir);
 
             // Ladda upp till ETERNA
             {
