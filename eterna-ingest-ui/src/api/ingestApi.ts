@@ -20,13 +20,16 @@ export interface TypeConfig {
   schema: JsonSchema
 }
 
-export interface RecordGroup {
-  records: TypeConfig[];
-}
+export type RecordGroup = TypeConfig[];
+export type SchemaDefinition = RecordGroup[];
 
-export interface SchemaDefinition {
-  recordsList: RecordGroup[];
-}
+// export interface RecordGroup {
+//   records: TypeConfig[];
+// }
+
+// export interface SchemaDefinition {
+//   recordsList: RecordGroup[];
+// }
 
 export interface SubmitRequest {
   parentId: string

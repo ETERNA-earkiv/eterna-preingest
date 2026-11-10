@@ -18,7 +18,7 @@ export default function App() {
   const [attachedFiles, setAttachedFiles] = useState<any[]>([])
   // const [activeTab, setActiveTab] = useState<'RECORD' | 'ITEM'>('RECORD')
   const [activeTab, setActiveTab] = useState(() =>
-      schemaDefinition?.recordsList?.length ? 0 : 0
+      schemaDefinition?.length ? 0 : 0
   )
 
   const { register, handleSubmit, formState: { errors }, reset: resetForm } = useForm<FormValues>({
@@ -40,11 +40,11 @@ export default function App() {
   }
 
   const activeRecordGroupLabel = (): string => {
-    return getRecordGroupLabel(schemaDefinition?.recordsList[activeTab]);
+    return getRecordGroupLabel(schemaDefinition?.[activeTab]);
   };
 
   const getRecordGroupLabel = (recordGroup: RecordGroup | undefined): string => {
-    return recordGroup?.records
+    return recordGroup
         ?.map((record: TypeConfig) => record.label?.sv)
         .filter((label): label is string => typeof label === "string")
         .join(" / ") ?? '';
@@ -65,7 +65,7 @@ export default function App() {
     </div>
   )
 
-  const activeRecordGroup = schemaDefinition?.recordsList[activeTab];
+  const activeRecordGroup = schemaDefinition?.[activeTab];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -95,9 +95,9 @@ export default function App() {
           </div>
 
           {/* Typväljare (flikar) */}
-          {schemaDefinition?.recordsList?.length && (
+          {schemaDefinition?.length && (
             <div className="flex gap-2 border-b">
-              {schemaDefinition.recordsList.map((recordGroup, index) => {
+              {schemaDefinition.map((recordGroup, index) => {
                 const label = getRecordGroupLabel(recordGroup);
                 return (
                   <button
@@ -119,9 +119,9 @@ export default function App() {
           {/* Dynamiska fält */}
           {activeRecordGroup ? (
             <section>
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">{activeRecordGroupLabel.toString()}</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-3">{getRecordGroupLabel(schemaDefinition?.[activeTab])}</h2>
               <DynamicForm
-                schema={activeRecordGroup.records[0].schema}
+                schema={activeRecordGroup[0].schema}
                 register={register}
                 errors={errors}
                 prefix="fields"
