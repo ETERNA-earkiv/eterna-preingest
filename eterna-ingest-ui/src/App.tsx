@@ -5,30 +5,30 @@ import { useIngest } from './hooks/useIngest'
 import { DynamicForm } from './components/DynamicForm'
 import { FileUpload } from './components/FileUpload'
 import { StatusTracker } from './components/StatusTracker'
-import {RecordGroup, TypeConfig} from './api/ingestApi.ts';
+import {FieldsMap, FieldValue, RecordGroup, TypeConfig} from './api/ingestApi.ts';
 
 interface FormValues {
   parentId: string
-  fields: Record<string, string>
+  // fields: Record<string, string>
+  fieldsMap: FieldsMap
 }
 
 export default function App() {
   const { schemaDefinition, loading, error: schemaError } = useSchema()
   const { state, jobId, status, error: ingestError, submit, reset } = useIngest()
   const [attachedFiles, setAttachedFiles] = useState<any[]>([])
-  // const [activeTab, setActiveTab] = useState<'RECORD' | 'ITEM'>('RECORD')
   const [activeTab, setActiveTab] = useState(() =>
       schemaDefinition?.length ? 0 : 0
   )
 
   const { register, handleSubmit, formState: { errors }, reset: resetForm } = useForm<FormValues>({
-    defaultValues: { fields: {} }
+    defaultValues: { fieldsMap: {} }
   })
 
   const onSubmit = async (data: FormValues) => {
     await submit({
       parentId: data.parentId,
-      fields: data.fields ?? {},
+      fieldsMap: data.fieldsMap ?? {},
       files: attachedFiles
     })
   }
@@ -119,12 +119,11 @@ export default function App() {
           {/* Dynamiska fält */}
           {activeRecordGroup ? (
             <section>
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">{getRecordGroupLabel(schemaDefinition?.[activeTab])}</h2>
               <DynamicForm
-                schema={activeRecordGroup[0].schema}
+                recordGroup={activeRecordGroup}
                 register={register}
                 errors={errors}
-                prefix="fields"
+                prefix="fieldsMap"
               />
             </section>
           ) : (

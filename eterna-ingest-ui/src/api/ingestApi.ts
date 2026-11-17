@@ -22,18 +22,12 @@ export interface TypeConfig {
 
 export type RecordGroup = TypeConfig[];
 export type SchemaDefinition = RecordGroup[];
-
-// export interface RecordGroup {
-//   records: TypeConfig[];
-// }
-
-// export interface SchemaDefinition {
-//   recordsList: RecordGroup[];
-// }
+export type FieldValue = string | number | boolean | null | undefined;
+export type FieldsMap = Record<string, Record<string, FieldValue>>;
 
 export interface SubmitRequest {
   parentId: string
-  fields: Record<string, string>
+  fieldsMap: FieldsMap
   files?: Array<{ filename: string; base64Data: string }>
 }
 
@@ -49,8 +43,6 @@ export interface StatusResponse {
 }
 
 const BASE = '/api'
-// @ts-ignore
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function fetchSchema(): Promise<SchemaDefinition> {
   const res = await fetch(`${BASE}/schema`);
