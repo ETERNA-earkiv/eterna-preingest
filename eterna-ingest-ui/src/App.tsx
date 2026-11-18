@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { useSchema } from './hooks/useSchema'
-import { useIngest } from './hooks/useIngest'
-import { DynamicForm } from './components/DynamicForm'
-import { FileUpload } from './components/FileUpload'
-import { StatusTracker } from './components/StatusTracker'
-import {FieldsMap, FieldValue, RecordGroup, TypeConfig} from './api/ingestApi.ts';
+import React, {useState} from 'react'
+import {useForm} from 'react-hook-form'
+import {useSchema} from './hooks/useSchema'
+import {useIngest} from './hooks/useIngest'
+import {DynamicForm} from './components/DynamicForm'
+import {FileUpload} from './components/FileUpload'
+import {StatusTracker} from './components/StatusTracker'
+import {FieldsMap, RecordGroup, TypeConfig} from './api/ingestApi.ts';
 
 interface FormValues {
   parentId: string
