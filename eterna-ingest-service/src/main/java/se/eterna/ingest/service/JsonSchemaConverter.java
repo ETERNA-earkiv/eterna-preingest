@@ -16,33 +16,30 @@ import java.util.Map;
 @Component
 public class JsonSchemaConverter {
 
-    public Map<String, Object> convert(SchemaDefinition schema) {
-        Map<String, Object> result = new HashMap<>();
+    public List<List<Map<String, Object>>> convert(SchemaDefinition schema) {
+        List<List<Map<String, Object>>> result = new ArrayList<>();
 
-        if (schema.record() != null) {
-            Map<String, Object> recordMap = new HashMap<>();
-            recordMap.put("metadataType", schema.record().metadataType());
-            if (schema.record().rootElement() != null) {
-                recordMap.put("rootElement", schema.record().rootElement());
-            }
-            if (schema.record().wrapperElement() != null) {
-                recordMap.put("wrapperElement", schema.record().wrapperElement());
-            }
-            if (schema.record().namespace() != null) {
-                recordMap.put("namespace", schema.record().namespace());
-            }
-            recordMap.put("label", labelMap(schema.record().label()));
-            recordMap.put("schema", buildJsonSchema(schema.recordFields()));
-
-            result.put("record", recordMap);
-        }
-
-        if (schema.item() != null) {
-            result.put("item", Map.of(
-                "metadataType", schema.item().metadataType(),
-                "label", labelMap(schema.item().label()),
-                "schema", buildJsonSchema(schema.itemFields())
-            ));
+        if (schema.recordsList() != null) {
+            schema.recordsList().forEach(records -> {
+                List<Map<String, Object>> recordMapList = new ArrayList<>();
+                records.records().forEach(record -> {
+                    Map<String, Object> recordMap = new HashMap<>();
+                    recordMap.put("metadataType", record.metadataType());
+                    if (record.rootElement() != null) {
+                        recordMap.put("rootElement", record.rootElement());
+                    }
+                    if (record.wrapperElement() != null) {
+                        recordMap.put("wrapperElement", record.wrapperElement());
+                    }
+                    if (record.namespace() != null) {
+                        recordMap.put("namespace", record.namespace());
+                    }
+                    recordMap.put("label", labelMap(record.label()));
+                    recordMap.put("schema", buildJsonSchema(record.fields()));
+                    recordMapList.add(recordMap);
+                });
+                result.add(recordMapList);
+            });
         }
 
         return result;
