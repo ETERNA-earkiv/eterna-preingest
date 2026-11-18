@@ -9,7 +9,6 @@ import {FieldsMap, FieldValue, RecordGroup, TypeConfig} from './api/ingestApi.ts
 
 interface FormValues {
   parentId: string
-  // fields: Record<string, string>
   fieldsMap: FieldsMap
 }
 
