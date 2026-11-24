@@ -16,9 +16,7 @@ export default function App() {
   const { schemaDefinition, loading, error: schemaError } = useSchema()
   const { state, jobId, status, error: ingestError, submit, reset } = useIngest()
   const [attachedFiles, setAttachedFiles] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState(() =>
-      schemaDefinition?.length ? 0 : 0
-  )
+  const [activeTab, setActiveTab] = useState(0)
 
   const { register, handleSubmit, formState: { errors }, reset: resetForm } = useForm<FormValues>({
     defaultValues: { fieldsMap: {} }
@@ -37,10 +35,6 @@ export default function App() {
     resetForm()
     setAttachedFiles([])
   }
-
-  const activeRecordGroupLabel = (): string => {
-    return getRecordGroupLabel(schemaDefinition?.[activeTab]);
-  };
 
   const getRecordGroupLabel = (recordGroup: RecordGroup | undefined): string => {
     return recordGroup
