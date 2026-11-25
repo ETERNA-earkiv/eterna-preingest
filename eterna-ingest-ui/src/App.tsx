@@ -96,7 +96,10 @@ export default function App() {
                   <button
                     key={index}
                     type="button"
-                    onClick={() => setActiveTab(index)}
+                    onClick={() => {
+                      handleReset();
+                      setActiveTab(index);
+                    }}
                     className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px
                       ${activeTab === index
                         ? 'border-blue-500 text-blue-600'
