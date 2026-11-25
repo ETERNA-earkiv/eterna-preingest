@@ -1,29 +1,32 @@
 import React from 'react'
 import { UseFormRegister, FieldErrors } from 'react-hook-form'
-import { JsonSchema, SchemaField } from '../api/ingestApi'
+import {JsonSchema, RecordGroup, SchemaField} from '../api/ingestApi'
 
 interface Props {
-  schema: JsonSchema
+  recordGroup: RecordGroup
   register: UseFormRegister<any>
   errors: FieldErrors
   prefix?: string
 }
 
-export function DynamicForm({ schema, register, errors, prefix = 'fields' }: Props) {
-  const { properties, required = [] } = schema
-
+export function DynamicForm({ recordGroup, register, errors, prefix = 'fieldsMap' }: Props) {
   return (
     <div className="space-y-4">
-      {Object.entries(properties).map(([name, field]) => (
-        <FieldInput
-          key={name}
-          name={name}
-          field={field}
-          required={required.includes(name)}
-          register={register}
-          error={(errors as any)[prefix]?.[name]}
-          prefix={prefix}
-        />
+      {Object.entries(recordGroup).map(([index, typeConfig]) => (
+          <div key={index}>
+            <h3>{typeConfig.label.sv}</h3>
+            {Object.entries(typeConfig.schema.properties).map(([name, field]) => (
+                <FieldInput
+                    key={typeConfig.metadataType + '.' + name}
+                    name={name}
+                    field={field}
+                    required={typeConfig.schema.required ? typeConfig.schema.required.includes(name) : false}
+                    register={register}
+                    error={(errors as any)?.[prefix]?.[typeConfig.metadataType]?.[name]}
+                    prefix={prefix + '.' + typeConfig.metadataType}
+                />
+            ))}
+          </div>
       ))}
     </div>
   )

@@ -1,32 +1,31 @@
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { useSchema } from './hooks/useSchema'
-import { useIngest } from './hooks/useIngest'
-import { DynamicForm } from './components/DynamicForm'
-import { FileUpload } from './components/FileUpload'
-import { StatusTracker } from './components/StatusTracker'
+import React, {useState} from 'react'
+import {useForm} from 'react-hook-form'
+import {useSchema} from './hooks/useSchema'
+import {useIngest} from './hooks/useIngest'
+import {DynamicForm} from './components/DynamicForm'
+import {FileUpload} from './components/FileUpload'
+import {StatusTracker} from './components/StatusTracker'
+import {FieldsMap, RecordGroup, TypeConfig} from './api/ingestApi.ts';
 
 interface FormValues {
   parentId: string
-  recordType: 'RECORD' | 'ITEM'
-  fields: Record<string, string>
+  fieldsMap: FieldsMap
 }
 
 export default function App() {
-  const { schema, loading, error: schemaError } = useSchema()
+  const { schemaDefinition, loading, error: schemaError } = useSchema()
   const { state, jobId, status, error: ingestError, submit, reset } = useIngest()
   const [attachedFiles, setAttachedFiles] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'RECORD' | 'ITEM'>('RECORD')
+  const [activeTab, setActiveTab] = useState(0)
 
   const { register, handleSubmit, formState: { errors }, reset: resetForm } = useForm<FormValues>({
-    defaultValues: { recordType: 'RECORD', fields: {} }
+    defaultValues: { fieldsMap: {} }
   })
 
   const onSubmit = async (data: FormValues) => {
     await submit({
       parentId: data.parentId,
-      recordType: activeTab,
-      fields: data.fields ?? {},
+      fieldsMap: data.fieldsMap ?? {},
       files: attachedFiles
     })
   }
@@ -35,6 +34,13 @@ export default function App() {
     reset()
     resetForm()
     setAttachedFiles([])
+  }
+
+  const getRecordGroupLabel = (recordGroup: RecordGroup | undefined): string => {
+    return recordGroup
+        ?.map((record: TypeConfig) => record.label?.sv)
+        .filter((label): label is string => typeof label === "string")
+        .join(" / ") ?? '';
   }
 
   if (loading) return (
@@ -52,8 +58,7 @@ export default function App() {
     </div>
   )
 
-  const activeSchema = activeTab === 'RECORD' ? schema?.record : schema?.item
-  const typeLabel = activeSchema?.label?.sv ?? activeTab
+  const activeRecordGroup = schemaDefinition?.[activeTab];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -83,18 +88,20 @@ export default function App() {
           </div>
 
           {/* Typväljare (flikar) */}
-          {schema?.record && schema?.item && (
+          {schemaDefinition?.length && (
             <div className="flex gap-2 border-b">
-              {(['RECORD', 'ITEM'] as const).map(tab => {
-                const s = tab === 'RECORD' ? schema.record : schema.item
-                const label = s?.label?.sv ?? tab
+              {schemaDefinition.map((recordGroup, index) => {
+                const label = getRecordGroupLabel(recordGroup);
                 return (
                   <button
-                    key={tab}
+                    key={index}
                     type="button"
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => {
+                      handleReset();
+                      setActiveTab(index);
+                    }}
                     className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px
-                      ${activeTab === tab
+                      ${activeTab === index
                         ? 'border-blue-500 text-blue-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   >
@@ -106,14 +113,13 @@ export default function App() {
           )}
 
           {/* Dynamiska fält */}
-          {activeSchema ? (
+          {activeRecordGroup ? (
             <section>
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">{typeLabel}</h2>
               <DynamicForm
-                schema={activeSchema.schema}
+                recordGroup={activeRecordGroup}
                 register={register}
                 errors={errors}
-                prefix="fields"
+                prefix="fieldsMap"
               />
             </section>
           ) : (
