@@ -11,21 +11,23 @@ export interface JsonSchema {
   required?: string[]
 }
 
-export interface TypeSchema {
+export interface TypeConfig {
+  rootElement: string;
+  namespace: string;
+  wrapperElement: string;
   metadataType: string
   label: { sv?: string; en?: string }
   schema: JsonSchema
 }
 
-export interface IngestSchema {
-  record?: TypeSchema
-  item?: TypeSchema
-}
+export type RecordGroup = TypeConfig[];
+export type SchemaDefinition = RecordGroup[];
+export type FieldValue = string | number | boolean | null | undefined;
+export type FieldsMap = Record<string, Record<string, FieldValue>>;
 
 export interface SubmitRequest {
   parentId: string
-  recordType: 'RECORD' | 'ITEM'
-  fields: Record<string, string>
+  fieldsMap: FieldsMap
   files?: Array<{ filename: string; base64Data: string }>
 }
 
@@ -42,9 +44,9 @@ export interface StatusResponse {
 
 const BASE = '/api'
 
-export async function fetchSchema(): Promise<IngestSchema> {
-  const res = await fetch(`${BASE}/schema`)
-  if (!res.ok) throw new Error('Kunde inte hämta schema')
+export async function fetchSchema(): Promise<SchemaDefinition> {
+  const res = await fetch(`${BASE}/schema`);
+  if (!res.ok) throw new Error('Kunde inte hämta schema');
   return res.json()
 }
 
